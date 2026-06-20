@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=version.env
+source "$ROOT/scripts/version.env"
+APP_NAME="Moa-Lite"
+APP="$ROOT/$APP_NAME.app"
+CONTENTS="$APP/Contents"
+MACOS="$CONTENTS/MacOS"
+RESOURCES="$CONTENTS/Resources"
+EXECUTABLE="$MACOS/$APP_NAME"
+
+fail() {
+  echo "smoke-release: $*" >&2
+  exit 1
+}
+
+require_file() {
+  [[ -f "$1" ]] || fail "missing file: $1"
+}
+
+require_absent() {
+  [[ ! -e "$1" ]] || fail "unexpected file: $1"
+}
+
+check_mach_o_deployment_target() {
+  local executable="$1"
+  local minos
+  minos="$(/usr/bin/otool -l "$executable" | awk '
+    $1 == "cmd" && $2 == "LC_BUILD_VERSION" { in_build = 1; next }
+    in_build && $1 == "minos" { print $2; exit }
+    $1 == "cmd" && $2 == "LC_VERSION_MIN_MACOSX" { in_min = 1; next }
+    in_min && $1 == "version" { print $2; exit }
+  ')"
+
+  [[ -n "$minos" ]] || fail "missing Mach-O deployment target in $executable"
+  [[ "$minos" == "$MACOS_DEPLOYMENT_TARGET" ]] ||
+    fail "Mach-O deployment target mismatch in $executable: expected $MACOS_DEPLOYMENT_TARGET, got $minos"
+}
+
+CODE_SIGN_IDENTITY="${CODE_SIGN_IDENTITY:--}" bash "$ROOT/scripts/build-menu-bar-app.sh"
+
+require_file "$EXECUTABLE"
+require_file "$CONTENTS/Info.plist"
+require_file "$RESOURCES/AppIcon.icns"
+require_file "$RESOURCES/MoaMenuBarIcon.png"
+require_file "$RESOURCES/en.lproj/Localizable.strings"
+require_file "$RESOURCES/zh-Hans.lproj/Localizable.strings"
+require_absent "$MACOS/MoaMCP"
+
+plist_value() {
+  /usr/libexec/PlistBuddy -c "Print :$1" "$CONTENTS/Info.plist"
+}
+
+[[ "$(plist_value CFBundleDisplayName)" == "$APP_NAME" ]] || fail "CFBundleDisplayName is not $APP_NAME"
+[[ "$(plist_value CFBundleName)" == "$APP_NAME" ]] || fail "CFBundleName is not $APP_NAME"
+[[ "$(plist_value CFBundleExecutable)" == "$APP_NAME" ]] || fail "CFBundleExecutable is not $APP_NAME"
+[[ "$(plist_value CFBundleIdentifier)" == "com.moarliu.moa-lite" ]] || fail "bundle identifier is not isolated"
+[[ "$(plist_value LSMinimumSystemVersion)" == "$MACOS_DEPLOYMENT_TARGET" ]] ||
+  fail "LSMinimumSystemVersion is not $MACOS_DEPLOYMENT_TARGET"
+
+/usr/bin/codesign --verify --deep --strict "$APP"
+check_mach_o_deployment_target "$EXECUTABLE"
+/usr/bin/plutil -lint "$RESOURCES/en.lproj/Localizable.strings" "$RESOURCES/zh-Hans.lproj/Localizable.strings"
+
+if find "$APP" \( \
+  -name ".moa" -o \
+  -name ".moa-lite" -o \
+  -name ".codex" -o \
+  -name ".env" -o \
+  -name ".env.*" -o \
+  -name "auth.json" -o \
+  -name "profiles.json" -o \
+  -name "config.toml" -o \
+  -name "*.key" -o \
+  -name "*.pem" -o \
+  -name "*.p12" -o \
+  -name "*.mobileprovision" \
+\) -print -quit | grep -q .; then
+  fail "app bundle contains sensitive local data"
+fi
+
+"$ROOT/scripts/run-tests.sh"
+
+echo "Smoke release checks passed for $APP"
