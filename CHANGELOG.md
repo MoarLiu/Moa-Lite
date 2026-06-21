@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.0 - 2026-06-21
+
+- Added a ZCode menu with usage statistics, launch/relaunch actions, and quick access to `~/.zcode`.
+- Added ZCode usage scanning from the local CLI SQLite database with GLM-5.2, GLM-5.1, and GLM-5-Turbo pricing.
+- Added cache hit ratio to Codex, Claude Desktop, and ZCode usage summaries and insights.
+- Localized new ZCode and cache-hit UI strings in English and Simplified Chinese.
+
 ## 1.0.0
 
 - Created Moa-Lite from the Moa codebase as an independent macOS menu bar app.

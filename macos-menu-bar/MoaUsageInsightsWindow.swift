@@ -8,6 +8,7 @@ final class MoaUsageInsightsWindowController {
 
     private let codexScanner: CodexUsageScanner
     private let claudeScanner: ClaudeUsageScanner
+    private let zcodeScanner: ZCodeUsageScanner
     private let pricingOverrides: MoaUsagePricingOverrideController
     private let usageAlertThresholdProvider: UsageAlertThresholdProvider
     private let usageAlertSettingsAction: UsageAlertSettingsAction
@@ -17,12 +18,14 @@ final class MoaUsageInsightsWindowController {
     init(
         codexScanner: CodexUsageScanner,
         claudeScanner: ClaudeUsageScanner,
+        zcodeScanner: ZCodeUsageScanner,
         pricingOverrides: MoaUsagePricingOverrideController = MoaUsagePricingOverrideController(),
         usageAlertThresholdProvider: @escaping UsageAlertThresholdProvider = { _ in nil },
         usageAlertSettingsAction: @escaping UsageAlertSettingsAction = { _ in }
     ) {
         self.codexScanner = codexScanner
         self.claudeScanner = claudeScanner
+        self.zcodeScanner = zcodeScanner
         self.pricingOverrides = pricingOverrides
         self.usageAlertThresholdProvider = usageAlertThresholdProvider
         self.usageAlertSettingsAction = usageAlertSettingsAction
@@ -49,6 +52,7 @@ final class MoaUsageInsightsWindowController {
         let model = MoaUsageInsightsViewModel(
             codexScanner: codexScanner,
             claudeScanner: claudeScanner,
+            zcodeScanner: zcodeScanner,
             pricingOverrides: pricingOverrides,
             usageAlertThresholdProvider: usageAlertThresholdProvider,
             usageAlertSettingsAction: usageAlertSettingsAction,
@@ -86,6 +90,7 @@ private final class MoaUsageInsightsViewModel: ObservableObject {
 
     private let codexScanner: CodexUsageScanner
     private let claudeScanner: ClaudeUsageScanner
+    private let zcodeScanner: ZCodeUsageScanner
     private let pricingOverrides: MoaUsagePricingOverrideController
     private let usageAlertThresholdProvider: MoaUsageInsightsWindowController.UsageAlertThresholdProvider
     private let usageAlertSettingsAction: MoaUsageInsightsWindowController.UsageAlertSettingsAction
@@ -93,6 +98,7 @@ private final class MoaUsageInsightsViewModel: ObservableObject {
     init(
         codexScanner: CodexUsageScanner,
         claudeScanner: ClaudeUsageScanner,
+        zcodeScanner: ZCodeUsageScanner,
         pricingOverrides: MoaUsagePricingOverrideController,
         usageAlertThresholdProvider: @escaping MoaUsageInsightsWindowController.UsageAlertThresholdProvider,
         usageAlertSettingsAction: @escaping MoaUsageInsightsWindowController.UsageAlertSettingsAction,
@@ -100,6 +106,7 @@ private final class MoaUsageInsightsViewModel: ObservableObject {
     ) {
         self.codexScanner = codexScanner
         self.claudeScanner = claudeScanner
+        self.zcodeScanner = zcodeScanner
         self.pricingOverrides = pricingOverrides
         self.usageAlertThresholdProvider = usageAlertThresholdProvider
         self.usageAlertSettingsAction = usageAlertSettingsAction
@@ -129,6 +136,8 @@ private final class MoaUsageInsightsViewModel: ObservableObject {
             return .codex
         case .some(.claude):
             return .claude
+        case .some(.zcode):
+            return .zcode
         case .none:
             return nil
         }
@@ -147,7 +156,7 @@ private final class MoaUsageInsightsViewModel: ObservableObject {
 
     var alertStatusText: String {
         guard let kind = selectedAlertKind else {
-            return MoaL10n.text("Choose Codex or Claude Desktop to view its daily usage alert threshold.")
+            return MoaL10n.text("Choose Codex, Claude Desktop, or ZCode to view its daily usage alert threshold.")
         }
         guard let threshold = usageAlertThreshold else {
             return String(format: MoaL10n.text("%@ daily usage alert is off."), kind.displayName)
@@ -180,7 +189,8 @@ private final class MoaUsageInsightsViewModel: ObservableObject {
                 let now = Date()
                 let codex = try self.codexScanner.loadReport(forceRefresh: forceRefresh, now: now)
                 let claude = try self.claudeScanner.loadReport(forceRefresh: forceRefresh, now: now)
-                return MoaUsageReport(rows: codex.rows + claude.rows, generatedAt: now)
+                let zcode = try self.zcodeScanner.loadReport(forceRefresh: forceRefresh, now: now)
+                return MoaUsageReport(rows: codex.rows + claude.rows + zcode.rows, generatedAt: now)
             }
 
             DispatchQueue.main.async {
@@ -358,6 +368,7 @@ private struct MoaUsageInsightsView: View {
             metric(title: MoaL10n.text("Estimated Cost"), value: MoaUsageReportExporter.currency(model.filteredReport.totalCostUSD))
             metric(title: MoaL10n.text("Tokens"), value: Self.compactTokens(model.filteredReport.totalTokens))
                 .help(Self.exactTokens(model.filteredReport.totalTokens))
+            metric(title: MoaL10n.text("Cache Hit"), value: Self.percent(model.filteredReport.cacheHitPercent))
             metric(title: MoaL10n.text("Rows"), value: "\(model.filteredRows.count)")
             metric(title: MoaL10n.text("Fallback Models"), value: "\(model.fallbackRows.count)")
         }
@@ -490,6 +501,10 @@ private struct MoaUsageInsightsView: View {
 
     private static func exactTokens(_ value: Int) -> String {
         MoaL10n.format("%@ tokens", "\(value)")
+    }
+
+    private static func percent(_ value: Double) -> String {
+        String(format: "%.2f%%", value)
     }
 }
 

@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     let providerBridgeProfileController = ProviderBridgeProfileController()
     let claudeDesktopProfileController = ClaudeDesktopProfileController()
     let providerBridgeServer = MoaProviderBridgeServer()
+    let zcodeController = ZCodeController()
     lazy var usageCoordinator = MoaUsageCoordinator()
     let dataPackageController = MoaDataPackageController()
     lazy var mainMenuCoordinator = MoaMainMenuCoordinator(app: self)
@@ -15,6 +16,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     lazy var usageInsightsWindow = MoaUsageInsightsWindowController(
         codexScanner: usageCoordinator.codexScanner,
         claudeScanner: usageCoordinator.claudeScanner,
+        zcodeScanner: usageCoordinator.zcodeScanner,
         usageAlertThresholdProvider: { kind in
             DailyUsageAlertController.threshold(for: kind)
         },
@@ -22,6 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             self?.showDailyUsageAlertPanel(kind: kind)
             self?.rebuildProfileMenu()
             self?.rebuildClaudeDesktopProfilesMenu()
+            self?.rebuildZCodeMenu()
         }
     )
 
@@ -35,13 +38,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     let codexProfilesMenu = NSMenu()
     let claudeDesktopProfilesItem = NSMenuItem(title: "Claude Desktop", action: nil, keyEquivalent: "")
     let claudeDesktopProfilesMenu = NSMenu()
+    let zcodeItem = NSMenuItem(title: MoaL10n.text("ZCode"), action: nil, keyEquivalent: "")
+    let zcodeMenu = NSMenu(title: MoaL10n.text("ZCode"))
     let providerBridgeItem = NSMenuItem(title: MoaL10n.text("Provider Bridge"), action: nil, keyEquivalent: "")
     let providerBridgeMenu = NSMenu(title: MoaL10n.text("Provider Bridge"))
 
     let codexDailyUsageAlertItem = NSMenuItem(title: MoaL10n.text("Daily Usage Alert"), action: #selector(showCodexDailyUsageAlertAction), keyEquivalent: "")
     let claudeDailyUsageAlertItem = NSMenuItem(title: MoaL10n.text("Daily Usage Alert"), action: #selector(showClaudeDailyUsageAlertAction), keyEquivalent: "")
+    let zcodeDailyUsageAlertItem = NSMenuItem(title: MoaL10n.text("Daily Usage Alert"), action: #selector(showZCodeDailyUsageAlertAction), keyEquivalent: "")
     let codexUsageDetailsItem = NSMenuItem(title: MoaL10n.text("Usage Details"), action: #selector(showCodexUsageDetailsAction), keyEquivalent: "")
     let claudeUsageDetailsItem = NSMenuItem(title: MoaL10n.text("Usage Details"), action: #selector(showClaudeUsageDetailsAction), keyEquivalent: "")
+    let zcodeUsageDetailsItem = NSMenuItem(title: MoaL10n.text("Usage Details"), action: #selector(showZCodeUsageDetailsAction), keyEquivalent: "")
     let fastModeItem = NSMenuItem(title: MoaL10n.text("Fast Mode"), action: #selector(toggleFastModeAction(_:)), keyEquivalent: "")
     let remoteConnectionsItem = NSMenuItem(title: MoaL10n.text("Remote Connections"), action: #selector(toggleRemoteConnectionsAction(_:)), keyEquivalent: "")
     let codexOfficialItem = NSMenuItem(title: MoaL10n.text("Codex Official"), action: nil, keyEquivalent: "")
@@ -80,7 +87,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         configureMenu()
         refreshStatus()
         restoreActiveProviderBridgeIfNeeded()
+        configureUsageAlertCallbacks()
         usageCoordinator.start()
+    }
+
+    private func configureUsageAlertCallbacks() {
+        usageCoordinator.onCodexSummaryLoaded = { [weak self] summary in
+            self?.maybeShowDailyUsageAlert(kind: .codex, summary: summary)
+        }
+        usageCoordinator.onClaudeSummaryLoaded = { [weak self] summary in
+            self?.maybeShowDailyUsageAlert(kind: .claude, summary: summary)
+        }
+        usageCoordinator.onZCodeSummaryLoaded = { [weak self] summary in
+            self?.maybeShowDailyUsageAlert(kind: .zcode, summary: summary)
+        }
     }
 
     private func repairLegacyICloudDataSplitIfNeeded() {
@@ -125,7 +145,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if let button = statusItem.button {
             button.image = Self.makeMenuBarIcon()
             button.imageScaling = .scaleProportionallyDown
-            button.toolTip = MoaL10n.text("Moa-Lite - Codex, Claude, Provider Bridge")
+            button.toolTip = MoaL10n.text("Moa-Lite - Codex, Claude, ZCode, Provider Bridge")
         }
         statusItem.menu = menu
     }

@@ -32,11 +32,14 @@
 "API keys are excluded by default and this is best for migrating configuration structure. Include API keys only when you trust the destination." = "API keys are excluded by default and this is best for migrating configuration structure. Include API keys only when you trust the destination.";
 "Append [1M] to a model to offer Claude Desktop's 1M-context variant, for example claude-opus-4.7[1M]." = "Append [1M] to a model to offer Claude Desktop's 1M-context variant, for example claude-opus-4.7[1M].";
 "Bridge curl copied" = "Bridge curl copied";
+"Cache Hit" = "Cache Hit";
 "Cache creation USD / 1M tokens" = "Cache creation USD / 1M tokens";
 "Cache read USD / 1M tokens" = "Cache read USD / 1M tokens";
 "Cancel" = "Cancel";
+"Choose Codex, Claude Desktop, or ZCode to view its daily usage alert threshold." = "Choose Codex, Claude Desktop, or ZCode to view its daily usage alert threshold.";
 "Choose Codex or Claude Desktop to view its daily usage alert threshold." = "Choose Codex or Claude Desktop to view its daily usage alert threshold.";
 "Claude Code config copied" = "Claude Code config copied";
+"Claude Desktop" = "Claude Desktop";
 "Claude Desktop API Base URL must use https://; only localhost, 127.0.0.1, and ::1 may use http://." = "Claude Desktop API Base URL must use https://; only localhost, 127.0.0.1, and ::1 may use http://.";
 "Claude Desktop config write failed, and rollback also failed: %@" = "Claude Desktop config write failed, and rollback also failed: %@";
 "Claude Desktop direct models must use Claude-safe names such as claude-* or anthropic/claude-*: %@" = "Claude Desktop direct models must use Claude-safe names such as claude-* or anthropic/claude-*: %@";
@@ -44,6 +47,7 @@
 "Claude Desktop provider not found." = "Claude Desktop provider not found.";
 "Close" = "Close";
 "Close Window" = "Close Window";
+"Codex" = "Codex";
 "Codex config copied" = "Codex config copied";
 "Codex Official" = "Codex Official";
 "Codex official account not found." = "Codex official account not found.";
@@ -125,6 +129,7 @@
 "Moa alerts you when today's local estimated cost reaches the threshold. This is only a local estimate, not an official bill." = "Moa alerts you when today's local estimated cost reaches the threshold. This is only a local estimate, not an official bill.";
 "Moa-Lite - Codex Usage" = "Moa-Lite - Codex Usage";
 "Moa-Lite - Codex, Claude, Provider Bridge" = "Moa-Lite - Codex, Claude, Provider Bridge";
+"Moa-Lite - Codex, Claude, ZCode, Provider Bridge" = "Moa-Lite - Codex, Claude, ZCode, Provider Bridge";
 "Moa-Lite Data" = "Moa-Lite Data";
 "Moa-Lite Data Exported" = "Moa-Lite Data Exported";
 "Moa-Lite data folder does not exist: %@" = "Moa-Lite data folder does not exist: %@";
@@ -156,6 +161,8 @@
 "Open iCloud Data Folder" = "Open iCloud Data Folder";
 "Open Moa-Lite Data Folder" = "Open Moa-Lite Data Folder";
 "Open Moa-Lite Folder" = "Open Moa-Lite Folder";
+"Open ZCode" = "Open ZCode";
+"Open ZCode Folder" = "Open ZCode Folder";
 "OpenAI Current Account" = "OpenAI Current Account";
 "Output USD / 1M tokens" = "Output USD / 1M tokens";
 "Paste" = "Paste";
@@ -183,6 +190,8 @@
 "Rename Current Account" = "Rename Current Account";
 "Reopen Claude Desktop" = "Reopen Claude Desktop";
 "Reopen Codex" = "Reopen Codex";
+"Reopen ZCode" = "Reopen ZCode";
+"Reopening ZCode..." = "Reopening ZCode...";
 "Rollback package: %@\nRestart Moa-Lite if any window still shows old data." = "Rollback package: %@\nRestart Moa-Lite if any window still shows old data.";
 "Rows" = "Rows";
 "Save" = "Save";
@@ -240,3 +249,6 @@
 "Use Codex Official Mode" = "Use Codex Official Mode";
 "Use iCloud" = "Use iCloud";
 "Use This Mac" = "Use This Mac";
+"Unable to read ZCode usage database." = "Unable to read ZCode usage database.";
+"ZCode" = "ZCode";
+"ZCode reopened" = "ZCode reopened";

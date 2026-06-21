@@ -6,6 +6,7 @@ struct CodexUsageSummary {
     let totalCostUSD: Double
     let todayTokens: Int
     let totalTokens: Int
+    let cacheHitPercent: Double
     let topModelName: String?
     let topModelTokens: Int
     let topModelPercent: Double
@@ -15,13 +16,16 @@ struct CodexUsageSummary {
 enum MoaUsageSource: String, Codable, CaseIterable, Hashable {
     case codex
     case claude
+    case zcode
 
     var title: String {
         switch self {
         case .codex:
-            return "Codex"
+            return MoaL10n.text("Codex")
         case .claude:
-            return "Claude Desktop"
+            return MoaL10n.text("Claude Desktop")
+        case .zcode:
+            return MoaL10n.text("ZCode")
         }
     }
 }
@@ -51,6 +55,10 @@ struct MoaUsageDetailRow: Identifiable, Codable, Hashable {
         cachedInput + cacheReadInput + cacheCreationInput
     }
 
+    var cacheHitTokens: Int {
+        cachedInput + cacheReadInput
+    }
+
     mutating func merge(_ row: MoaUsageDetailRow) {
         input += row.input
         cachedInput += row.cachedInput
@@ -75,6 +83,15 @@ struct MoaUsageReport {
 
     var totalTokens: Int {
         rows.reduce(0) { $0 + $1.totalTokens }
+    }
+
+    var cacheHitTokens: Int {
+        rows.reduce(0) { $0 + $1.cacheHitTokens }
+    }
+
+    var cacheHitPercent: Double {
+        guard totalTokens > 0 else { return 0 }
+        return Double(cacheHitTokens) / Double(totalTokens) * 100
     }
 
     var fallbackRows: [MoaUsageDetailRow] {
@@ -256,6 +273,33 @@ final class MoaUsagePricingOverrideController {
         )
     }
 
+    func zcodeCostEstimate(
+        model: String,
+        inputTokens: Int,
+        cacheReadInputTokens: Int,
+        cacheCreationInputTokens: Int,
+        outputTokens: Int
+    ) -> MoaUsagePricing.CostEstimate? {
+        guard let override = override(source: .zcode, model: model) else { return nil }
+        let promptTokens = max(0, inputTokens) + max(0, cacheReadInputTokens) + max(0, cacheCreationInputTokens)
+        let readRate = override.cacheReadUSDPerMillion
+            ?? MoaUsagePricing.zcodeCacheReadUSDPerMillion(model: override.model, promptTokens: promptTokens)
+            ?? override.inputUSDPerMillion
+        let creationRate = override.cacheCreationUSDPerMillion
+            ?? MoaUsagePricing.zcodeCacheCreationUSDPerMillion(model: override.model, promptTokens: promptTokens)
+            ?? override.inputUSDPerMillion
+        let cost = Self.cost(tokens: inputTokens, perMillion: override.inputUSDPerMillion)
+            + Self.cost(tokens: cacheReadInputTokens, perMillion: readRate)
+            + Self.cost(tokens: cacheCreationInputTokens, perMillion: creationRate)
+            + Self.cost(tokens: outputTokens, perMillion: override.outputUSDPerMillion)
+        return MoaUsagePricing.CostEstimate(
+            costUSD: cost,
+            normalizedModel: override.model,
+            pricingModel: MoaL10n.text("Custom"),
+            usesFallbackPricing: false
+        )
+    }
+
     private func save(_ overrides: [MoaUsagePricingOverride]) throws {
         try fileManager.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         let payload = Payload(overrides: overrides.sorted { $0.id < $1.id })
@@ -274,6 +318,8 @@ final class MoaUsagePricingOverrideController {
             return MoaUsagePricing.normalizeCodexModel(model)
         case .claude:
             return MoaUsagePricing.normalizeClaudeModel(model)
+        case .zcode:
+            return MoaUsagePricing.normalizeZCodeModel(model)
         }
     }
 
@@ -681,12 +727,14 @@ final class CodexUsageScanner {
         var todayTokens = 0
         var totalCost = 0.0
         var totalTokens = 0
+        var cacheHitTokens = 0
         var modelTotals: [String: Int] = [:]
 
         for row in report.rows {
             let tokens = row.totalTokens
             totalCost += row.costUSD
             totalTokens += tokens
+            cacheHitTokens += row.cacheHitTokens
             modelTotals[row.model, default: 0] += tokens
 
             if row.dayKey == todayKey {
@@ -704,12 +752,16 @@ final class CodexUsageScanner {
         } else {
             0.0
         }
+        let cacheHitPercent = totalTokens > 0
+            ? Double(cacheHitTokens) / Double(totalTokens) * 100
+            : 0.0
 
         return CodexUsageSummary(
             todayCostUSD: todayCost,
             totalCostUSD: totalCost,
             todayTokens: todayTokens,
             totalTokens: totalTokens,
+            cacheHitPercent: cacheHitPercent,
             topModelName: top?.key,
             topModelTokens: top?.value ?? 0,
             topModelPercent: topPercent,
@@ -1136,12 +1188,14 @@ final class ClaudeUsageScanner {
         var todayTokens = 0
         var totalCost = 0.0
         var totalTokens = 0
+        var cacheHitTokens = 0
         var modelTotals: [String: Int] = [:]
 
         for row in report.rows {
             let tokens = row.totalTokens
             totalCost += row.costUSD
             totalTokens += tokens
+            cacheHitTokens += row.cacheHitTokens
             modelTotals[row.model, default: 0] += tokens
 
             if row.dayKey == todayKey {
@@ -1159,12 +1213,16 @@ final class ClaudeUsageScanner {
         } else {
             0.0
         }
+        let cacheHitPercent = totalTokens > 0
+            ? Double(cacheHitTokens) / Double(totalTokens) * 100
+            : 0.0
 
         return CodexUsageSummary(
             todayCostUSD: todayCost,
             totalCostUSD: totalCost,
             todayTokens: todayTokens,
             totalTokens: totalTokens,
+            cacheHitPercent: cacheHitPercent,
             topModelName: top?.key,
             topModelTokens: top?.value ?? 0,
             topModelPercent: topPercent,
@@ -1245,6 +1303,7 @@ enum MoaUsagePricing {
     // 避免未知模型的成本被静默计为 0、导致总额偏低。
     private static let fallbackCodexPricingModel = "gpt-5.5"
     private static let fallbackClaudePricingModel = "claude-opus-4-7"
+    private static let fallbackZCodePricingModel = "GLM-5.2"
 
     private struct CodexPricing {
         let inputCostPerToken: Double
@@ -1270,6 +1329,13 @@ enum MoaUsagePricing {
         let outputCostPerTokenAboveThreshold: Double?
         let cacheCreationInputCostPerTokenAboveThreshold: Double?
         let cacheReadInputCostPerTokenAboveThreshold: Double?
+    }
+
+    private struct ZCodePricing {
+        let inputCostPerToken: Double
+        let outputCostPerToken: Double
+        let cacheCreationInputCostPerToken: Double
+        let cacheReadInputCostPerToken: Double
     }
 
     private static let codex: [String: CodexPricing] = [
@@ -1311,6 +1377,12 @@ enum MoaUsagePricing {
         "claude-opus-4-20250514": ClaudePricing(inputCostPerToken: 1.5e-5, outputCostPerToken: 7.5e-5, cacheCreationInputCostPerToken: 1.875e-5, cacheReadInputCostPerToken: 1.5e-6, thresholdTokens: nil, inputCostPerTokenAboveThreshold: nil, outputCostPerTokenAboveThreshold: nil, cacheCreationInputCostPerTokenAboveThreshold: nil, cacheReadInputCostPerTokenAboveThreshold: nil),
         "claude-opus-4-1": ClaudePricing(inputCostPerToken: 1.5e-5, outputCostPerToken: 7.5e-5, cacheCreationInputCostPerToken: 1.875e-5, cacheReadInputCostPerToken: 1.5e-6, thresholdTokens: nil, inputCostPerTokenAboveThreshold: nil, outputCostPerTokenAboveThreshold: nil, cacheCreationInputCostPerTokenAboveThreshold: nil, cacheReadInputCostPerTokenAboveThreshold: nil),
         "claude-sonnet-4-20250514": ClaudePricing(inputCostPerToken: 3e-6, outputCostPerToken: 1.5e-5, cacheCreationInputCostPerToken: 3.75e-6, cacheReadInputCostPerToken: 3e-7, thresholdTokens: 200_000, inputCostPerTokenAboveThreshold: 6e-6, outputCostPerTokenAboveThreshold: 2.25e-5, cacheCreationInputCostPerTokenAboveThreshold: 7.5e-6, cacheReadInputCostPerTokenAboveThreshold: 6e-7)
+    ]
+
+    private static let zcode: [String: ZCodePricing] = [
+        "glm-5.2": ZCodePricing(inputCostPerToken: 1.4e-6, outputCostPerToken: 4.4e-6, cacheCreationInputCostPerToken: 0, cacheReadInputCostPerToken: 0.26e-6),
+        "glm-5.1": ZCodePricing(inputCostPerToken: 1.4e-6, outputCostPerToken: 4.4e-6, cacheCreationInputCostPerToken: 0, cacheReadInputCostPerToken: 0.26e-6),
+        "glm-5-turbo": ZCodePricing(inputCostPerToken: 1.2e-6, outputCostPerToken: 4.0e-6, cacheCreationInputCostPerToken: 0, cacheReadInputCostPerToken: 0.24e-6)
     ]
 
     static func normalizeModel(_ raw: String) -> String {
@@ -1368,6 +1440,24 @@ enum MoaUsagePricing {
         }
 
         return trimmed
+    }
+
+    static func normalizeZCodeModel(_ raw: String) -> String {
+        var trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let slash = trimmed.lastIndex(of: "/") {
+            trimmed = String(trimmed[trimmed.index(after: slash)...])
+        }
+
+        switch trimmed.lowercased() {
+        case "glm-5.2":
+            return "GLM-5.2"
+        case "glm-5.1":
+            return "GLM-5.1"
+        case "glm-5-turbo", "glm-5turbo":
+            return "GLM-5-Turbo"
+        default:
+            return trimmed
+        }
     }
 
     static func codexDisplayLabel(model: String) -> String? {
@@ -1522,6 +1612,45 @@ enum MoaUsagePricing {
         return rate * 1_000_000
     }
 
+    static func zcodeCostEstimate(
+        model: String,
+        inputTokens: Int,
+        cacheReadInputTokens: Int,
+        cacheCreationInputTokens: Int,
+        outputTokens: Int) -> CostEstimate?
+    {
+        let normalized = normalizeZCodeModel(model)
+        let usesFallback = zcode[normalized.lowercased()] == nil
+        let pricingModel = usesFallback ? fallbackZCodePricingModel : normalized
+        guard let pricing = zcode[pricingModel.lowercased()] else { return nil }
+        let cost = zcodeCostUSD(
+            pricing: pricing,
+            inputTokens: inputTokens,
+            cacheReadInputTokens: cacheReadInputTokens,
+            cacheCreationInputTokens: cacheCreationInputTokens,
+            outputTokens: outputTokens)
+        return CostEstimate(
+            costUSD: cost,
+            normalizedModel: normalized,
+            pricingModel: pricingModel,
+            usesFallbackPricing: usesFallback
+        )
+    }
+
+    static func zcodeCacheReadUSDPerMillion(model: String, promptTokens: Int = 1) -> Double? {
+        let normalized = normalizeZCodeModel(model)
+        let pricingModel = zcode[normalized.lowercased()] == nil ? fallbackZCodePricingModel : normalized
+        guard let pricing = zcode[pricingModel.lowercased()] else { return nil }
+        return pricing.cacheReadInputCostPerToken * 1_000_000
+    }
+
+    static func zcodeCacheCreationUSDPerMillion(model: String, promptTokens: Int = 1) -> Double? {
+        let normalized = normalizeZCodeModel(model)
+        let pricingModel = zcode[normalized.lowercased()] == nil ? fallbackZCodePricingModel : normalized
+        guard let pricing = zcode[pricingModel.lowercased()] else { return nil }
+        return pricing.cacheCreationInputCostPerToken * 1_000_000
+    }
+
     private static func codexCostUSD(
         pricing: CodexPricing,
         inputTokens: Int,
@@ -1564,25 +1693,43 @@ enum MoaUsagePricing {
             + Double(cacheCreation) * cacheCreationRate
             + Double(output) * outputRate
     }
+
+    private static func zcodeCostUSD(
+        pricing: ZCodePricing,
+        inputTokens: Int,
+        cacheReadInputTokens: Int,
+        cacheCreationInputTokens: Int,
+        outputTokens: Int) -> Double
+    {
+        Double(max(0, inputTokens)) * pricing.inputCostPerToken
+            + Double(max(0, cacheReadInputTokens)) * pricing.cacheReadInputCostPerToken
+            + Double(max(0, cacheCreationInputTokens)) * pricing.cacheCreationInputCostPerToken
+            + Double(max(0, outputTokens)) * pricing.outputCostPerToken
+    }
 }
 
 private typealias CodexUsagePricing = MoaUsagePricing
 
 final class CodexUsageSummaryMenuView: NSView {
-    private static let menuWidth: CGFloat = 276
+    private static let menuWidth: CGFloat = 300
     private static let menuHeight: CGFloat = 128
     private static let leftX: CGFloat = 16
-    private static let rightX: CGFloat = 152
-    private static let columnWidth: CGFloat = 108
-    private static let fullWidth: CGFloat = 244
+    private static let centerX: CGFloat = 104
+    private static let rightX: CGFloat = 192
+    private static let costRightX: CGFloat = 166
+    private static let usageColumnWidth: CGFloat = 84
+    private static let costColumnWidth: CGFloat = 118
+    private static let fullWidth: CGFloat = 268
     private let todayCaption = CodexUsageSummaryMenuView.label(font: .systemFont(ofSize: 11, weight: .medium), color: .secondaryLabelColor)
     private let monthCaption = CodexUsageSummaryMenuView.label(font: .systemFont(ofSize: 11, weight: .medium), color: .secondaryLabelColor)
     private let todayValue = CodexUsageSummaryMenuView.label(font: .systemFont(ofSize: 16, weight: .regular), color: .labelColor)
     private let monthValue = CodexUsageSummaryMenuView.label(font: .systemFont(ofSize: 16, weight: .regular), color: .labelColor)
     private let monthTokensCaption = CodexUsageSummaryMenuView.label(font: .systemFont(ofSize: 11, weight: .medium), color: .secondaryLabelColor)
     private let latestTokensCaption = CodexUsageSummaryMenuView.label(font: .systemFont(ofSize: 11, weight: .medium), color: .secondaryLabelColor)
+    private let cacheHitCaption = CodexUsageSummaryMenuView.label(font: .systemFont(ofSize: 11, weight: .medium), color: .secondaryLabelColor)
     private let monthTokensValue = CodexUsageSummaryMenuView.label(font: .systemFont(ofSize: 16, weight: .regular), color: .labelColor)
     private let latestTokensValue = CodexUsageSummaryMenuView.label(font: .systemFont(ofSize: 16, weight: .regular), color: .labelColor)
+    private let cacheHitValue = CodexUsageSummaryMenuView.label(font: .systemFont(ofSize: 16, weight: .regular), color: .labelColor)
     private let topModelLine = CodexUsageSummaryMenuView.label(font: .systemFont(ofSize: 11, weight: .regular), color: .secondaryLabelColor)
     private var currentState: CodexUsageMenuState = .idle
 
@@ -1595,14 +1742,17 @@ final class CodexUsageSummaryMenuView: NSView {
             monthValue,
             monthTokensCaption,
             latestTokensCaption,
+            cacheHitCaption,
             monthTokensValue,
             latestTokensValue,
+            cacheHitValue,
             topModelLine
         ].forEach(addSubview)
         todayCaption.stringValue = MoaL10n.text("Today Cost")
         monthCaption.stringValue = MoaL10n.text("Total Cost")
         monthTokensCaption.stringValue = MoaL10n.text("Today Usage")
         latestTokensCaption.stringValue = MoaL10n.text("Total Usage")
+        cacheHitCaption.stringValue = MoaL10n.text("Cache Hit")
         apply(.idle)
     }
 
@@ -1617,14 +1767,16 @@ final class CodexUsageSummaryMenuView: NSView {
     override func layout() {
         super.layout()
         topModelLine.frame = NSRect(x: Self.leftX, y: 105, width: Self.fullWidth, height: 17)
-        todayCaption.frame = NSRect(x: Self.leftX, y: 78, width: Self.columnWidth, height: 18)
-        monthCaption.frame = NSRect(x: Self.rightX, y: 78, width: Self.columnWidth, height: 18)
-        todayValue.frame = NSRect(x: Self.leftX, y: 55, width: Self.columnWidth, height: 23)
-        monthValue.frame = NSRect(x: Self.rightX, y: 55, width: Self.columnWidth, height: 23)
-        monthTokensCaption.frame = NSRect(x: Self.leftX, y: 28, width: Self.columnWidth, height: 18)
-        latestTokensCaption.frame = NSRect(x: Self.rightX, y: 28, width: Self.columnWidth, height: 18)
-        monthTokensValue.frame = NSRect(x: Self.leftX, y: 5, width: Self.columnWidth, height: 23)
-        latestTokensValue.frame = NSRect(x: Self.rightX, y: 5, width: Self.columnWidth, height: 23)
+        todayCaption.frame = NSRect(x: Self.leftX, y: 78, width: Self.costColumnWidth, height: 18)
+        monthCaption.frame = NSRect(x: Self.costRightX, y: 78, width: Self.costColumnWidth, height: 18)
+        todayValue.frame = NSRect(x: Self.leftX, y: 55, width: Self.costColumnWidth, height: 23)
+        monthValue.frame = NSRect(x: Self.costRightX, y: 55, width: Self.costColumnWidth, height: 23)
+        monthTokensCaption.frame = NSRect(x: Self.leftX, y: 28, width: Self.usageColumnWidth, height: 18)
+        latestTokensCaption.frame = NSRect(x: Self.centerX, y: 28, width: Self.usageColumnWidth, height: 18)
+        cacheHitCaption.frame = NSRect(x: Self.rightX, y: 28, width: Self.usageColumnWidth, height: 18)
+        monthTokensValue.frame = NSRect(x: Self.leftX, y: 5, width: Self.usageColumnWidth, height: 23)
+        latestTokensValue.frame = NSRect(x: Self.centerX, y: 5, width: Self.usageColumnWidth, height: 23)
+        cacheHitValue.frame = NSRect(x: Self.rightX, y: 5, width: Self.usageColumnWidth, height: 23)
     }
 
     func apply(_ state: CodexUsageMenuState) {
@@ -1635,6 +1787,7 @@ final class CodexUsageSummaryMenuView: NSView {
             monthValue.stringValue = "—"
             monthTokensValue.stringValue = "—"
             latestTokensValue.stringValue = "—"
+            cacheHitValue.stringValue = "—"
             topModelLine.stringValue = "\(MoaL10n.text("Top Model")): —"
         case .loading(let previous):
             if let previous {
@@ -1644,6 +1797,7 @@ final class CodexUsageSummaryMenuView: NSView {
                 monthValue.stringValue = "..."
                 monthTokensValue.stringValue = "..."
                 latestTokensValue.stringValue = "..."
+                cacheHitValue.stringValue = "..."
                 topModelLine.stringValue = "\(MoaL10n.text("Top Model")): ..."
             }
         case .loaded(let summary):
@@ -1656,6 +1810,7 @@ final class CodexUsageSummaryMenuView: NSView {
                 monthValue.stringValue = "—"
                 monthTokensValue.stringValue = "—"
                 latestTokensValue.stringValue = "—"
+                cacheHitValue.stringValue = "—"
                 topModelLine.stringValue = "\(MoaL10n.text("Top Model")): —"
             }
             toolTip = "\(MoaL10n.text("Usage update failed")): \(message)"
@@ -1668,6 +1823,7 @@ final class CodexUsageSummaryMenuView: NSView {
         monthValue.stringValue = Self.currency(summary.totalCostUSD)
         monthTokensValue.stringValue = Self.tokens(summary.todayTokens)
         latestTokensValue.stringValue = Self.tokens(summary.totalTokens)
+        cacheHitValue.stringValue = Self.percent(summary.cacheHitPercent)
         if let topModel = summary.topModelName {
             let displayModel = Self.displayModelName(topModel)
             let topModelText = "\(MoaL10n.text("Top Model")): \(displayModel) (\(MoaL10n.text("Usage Rate")): \(String(format: "%.1f%%", summary.topModelPercent)))"
@@ -1715,6 +1871,10 @@ final class CodexUsageSummaryMenuView: NSView {
         return "\(value)"
     }
 
+    private static func percent(_ value: Double) -> String {
+        String(format: "%.2f%%", value)
+    }
+
     private static func compact(_ value: Double, suffix: String, decimals: Int) -> String {
         var text = String(format: "%.\(decimals)f", value)
         if decimals > 0 {
@@ -1730,7 +1890,7 @@ final class CodexUsageSummaryMenuView: NSView {
 }
 
 final class CodexUsageRefreshMenuView: NSView {
-    private static let menuWidth: CGFloat = 276
+    private static let menuWidth: CGFloat = 300
     private static let menuHeight: CGFloat = 28
     var onRefresh: (() -> Void)?
     private let titleLabel = NSTextField(labelWithString: MoaL10n.text("Refresh Status"))

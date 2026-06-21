@@ -4,13 +4,16 @@ import SwiftUI
 enum DailyUsageAlertKind: String {
     case codex
     case claude
+    case zcode
 
     var displayName: String {
         switch self {
         case .codex:
-            return "Codex"
+            return MoaL10n.text("Codex")
         case .claude:
-            return "Claude Desktop"
+            return MoaL10n.text("Claude Desktop")
+        case .zcode:
+            return MoaL10n.text("ZCode")
         }
     }
 }

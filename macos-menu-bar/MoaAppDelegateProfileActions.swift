@@ -18,6 +18,11 @@ extension AppDelegate {
     @objc func exportClaudeDesktopProfilesAction() { profileActionCoordinator.exportClaudeDesktopProfilesAction() }
     @objc func showClaudeDailyUsageAlertAction() { profileActionCoordinator.showClaudeDailyUsageAlertAction() }
     @objc func showClaudeUsageDetailsAction() { profileActionCoordinator.showClaudeUsageDetailsAction() }
+    @objc func showZCodeDailyUsageAlertAction() { profileActionCoordinator.showZCodeDailyUsageAlertAction() }
+    @objc func showZCodeUsageDetailsAction() { profileActionCoordinator.showZCodeUsageDetailsAction() }
+    @objc func openZCodeAction() { profileActionCoordinator.openZCodeAction() }
+    @objc func reopenZCodeAction() { profileActionCoordinator.reopenZCodeAction() }
+    @objc func openZCodeFolderAction() { profileActionCoordinator.openZCodeFolderAction() }
     @objc func applyClaudeDesktopProviderAction(_ sender: NSMenuItem) { profileActionCoordinator.applyClaudeDesktopProviderAction(sender) }
     @objc func restoreClaudeDesktopOfficialAction() { profileActionCoordinator.restoreClaudeDesktopOfficialAction() }
     @objc func openClaudeDesktopAction() { profileActionCoordinator.openClaudeDesktopAction() }

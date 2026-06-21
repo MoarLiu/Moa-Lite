@@ -5,6 +5,7 @@ import SwiftUI
 extension AppDelegate {
     func rebuildProfileMenu() { mainMenuCoordinator.rebuildProfileMenu() }
     func rebuildProviderBridgeMenu() { mainMenuCoordinator.rebuildProviderBridgeMenu() }
+    func rebuildZCodeMenu() { mainMenuCoordinator.rebuildZCodeMenu() }
     func providerPresetSubmenuItem(title: String, presets: [MoaProviderPreset]) -> NSMenuItem {
         mainMenuCoordinator.providerPresetSubmenuItem(title: title, presets: presets)
     }

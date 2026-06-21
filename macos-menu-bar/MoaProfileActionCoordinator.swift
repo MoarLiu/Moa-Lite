@@ -12,12 +12,14 @@ final class MoaProfileActionCoordinator {
     var profileController: ConfigProfileController { app.profileController }
     var claudeDesktopProfileController: ClaudeDesktopProfileController { app.claudeDesktopProfileController }
     var providerBridgeServer: MoaProviderBridgeServer { app.providerBridgeServer }
+    var zcodeController: ZCodeController { app.zcodeController }
     var controller: FastStateController { app.controller }
     var statusItemText: NSMenuItem { app.statusItemText }
     var usageInsightsWindow: MoaUsageInsightsWindowController { app.usageInsightsWindow }
 
     func rebuildCodexProviderMenus() { app.rebuildCodexProviderMenus() }
     func rebuildClaudeProviderMenus() { app.rebuildClaudeProviderMenus() }
+    func rebuildZCodeMenu() { app.rebuildZCodeMenu() }
     func refreshStatus() { app.refreshStatus() }
     func showError(_ message: String) { app.showError(message) }
     func copyToPasteboard(_ text: String) { app.copyToPasteboard(text) }
@@ -311,6 +313,35 @@ final class MoaProfileActionCoordinator {
 
     func showClaudeUsageDetailsAction() {
         usageInsightsWindow.show(initialSource: .claude)
+    }
+
+    func showZCodeDailyUsageAlertAction() {
+        showDailyUsageAlertPanel(kind: .zcode)
+        rebuildZCodeMenu()
+    }
+
+    func showZCodeUsageDetailsAction() {
+        usageInsightsWindow.show(initialSource: .zcode)
+    }
+
+    func openZCodeAction() {
+        zcodeController.openZCode()
+    }
+
+    func reopenZCodeAction() {
+        statusItemText.title = AppDelegate.statusTitle("Reopening ZCode...")
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            self.zcodeController.reopenZCode()
+
+            DispatchQueue.main.async {
+                self.statusItemText.title = AppDelegate.statusTitle("ZCode reopened")
+            }
+        }
+    }
+
+    func openZCodeFolderAction() {
+        zcodeController.openZCodeFolder()
     }
 
     func applyClaudeDesktopProviderAction(_ sender: NSMenuItem) {

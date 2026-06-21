@@ -32,11 +32,14 @@
 "API keys are excluded by default and this is best for migrating configuration structure. Include API keys only when you trust the destination." = "默认不包含 API Key，适合迁移配置结构。只有在你确认保存位置安全时，才选择包含 API Key。";
 "Append [1M] to a model to offer Claude Desktop's 1M-context variant, for example claude-opus-4.7[1M]." = "在模型名后追加 [1M] 可提供 Claude Desktop 的 1M 上下文变体，例如 claude-opus-4.7[1M]。";
 "Bridge curl copied" = "Bridge curl 已复制";
+"Cache Hit" = "缓存比例";
 "Cache creation USD / 1M tokens" = "缓存创建 USD / 100万 tokens";
 "Cache read USD / 1M tokens" = "缓存读取 USD / 100万 tokens";
 "Cancel" = "取消";
+"Choose Codex, Claude Desktop, or ZCode to view its daily usage alert threshold." = "选择 Codex、Claude Desktop 或 ZCode 后查看对应的今日用量提醒阈值。";
 "Choose Codex or Claude Desktop to view its daily usage alert threshold." = "选择 Codex 或 Claude Desktop 后查看对应的今日用量提醒阈值。";
 "Claude Code config copied" = "Claude Code 配置已复制";
+"Claude Desktop" = "Claude Desktop";
 "Claude Desktop API Base URL must use https://; only localhost, 127.0.0.1, and ::1 may use http://." = "Claude Desktop API Base URL 必须使用 https://；仅 localhost、127.0.0.1、::1 可使用 http://。";
 "Claude Desktop config write failed, and rollback also failed: %@" = "Claude Desktop 配置写入失败，回滚也失败：%@";
 "Claude Desktop direct models must use Claude-safe names such as claude-* or anthropic/claude-*: %@" = "Claude Desktop 直连模型必须使用 Claude 安全名称，例如 claude-* 或 anthropic/claude-*：%@";
@@ -44,6 +47,7 @@
 "Claude Desktop provider not found." = "未找到 Claude Desktop 供应商。";
 "Close" = "关闭";
 "Close Window" = "关闭窗口";
+"Codex" = "Codex";
 "Codex config copied" = "Codex 配置已复制";
 "Codex Official" = "Codex 官方模式";
 "Codex official account not found." = "找不到 Codex 官方账号。";
@@ -125,6 +129,7 @@
 "Moa alerts you when today's local estimated cost reaches the threshold. This is only a local estimate, not an official bill." = "当今日本地估算费用达到阈值时提醒；这里只是 Moa 的本地估算，不代表官方账单。";
 "Moa-Lite - Codex Usage" = "Moa-Lite - Codex 用量";
 "Moa-Lite - Codex, Claude, Provider Bridge" = "Moa-Lite - Codex、Claude、Provider Bridge";
+"Moa-Lite - Codex, Claude, ZCode, Provider Bridge" = "Moa-Lite - Codex、Claude、ZCode、Provider Bridge";
 "Moa-Lite Data" = "Moa-Lite 数据";
 "Moa-Lite Data Exported" = "Moa-Lite 数据已导出";
 "Moa-Lite data folder does not exist: %@" = "Moa-Lite 数据文件夹不存在：%@";
@@ -156,6 +161,8 @@
 "Open iCloud Data Folder" = "打开 iCloud 数据文件夹";
 "Open Moa-Lite Data Folder" = "打开 Moa-Lite 数据文件夹";
 "Open Moa-Lite Folder" = "打开 Moa-Lite 文件夹";
+"Open ZCode" = "打开 ZCode";
+"Open ZCode Folder" = "打开 ZCode 文件夹";
 "OpenAI Current Account" = "OpenAI 当前账号";
 "Output USD / 1M tokens" = "输出 USD / 100万 tokens";
 "Paste" = "粘贴";
@@ -183,6 +190,8 @@
 "Rename Current Account" = "重命名当前账号";
 "Reopen Claude Desktop" = "重启 Claude Desktop";
 "Reopen Codex" = "重启 Codex";
+"Reopen ZCode" = "重启 ZCode";
+"Reopening ZCode..." = "正在重启 ZCode...";
 "Rollback package: %@\nRestart Moa-Lite if any window still shows old data." = "回滚数据包：%@\n如果有窗口仍显示旧数据，请重启 Moa-Lite。";
 "Rows" = "行数";
 "Save" = "保存";
@@ -240,3 +249,6 @@
 "Use Codex Official Mode" = "使用 Codex 官方模式";
 "Use iCloud" = "使用 iCloud";
 "Use This Mac" = "使用这台 Mac";
+"Unable to read ZCode usage database." = "无法读取 ZCode 用量数据库。";
+"ZCode" = "ZCode";
+"ZCode reopened" = "ZCode 已重启";

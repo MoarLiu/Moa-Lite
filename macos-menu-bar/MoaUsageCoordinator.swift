@@ -4,41 +4,54 @@ import Foundation
 final class MoaUsageCoordinator {
     let codexScanner: CodexUsageScanner
     let claudeScanner: ClaudeUsageScanner
+    let zcodeScanner: ZCodeUsageScanner
     let codexSummaryItem = NSMenuItem()
     let codexRefreshItem = NSMenuItem()
     let claudeSummaryItem = NSMenuItem()
     let claudeRefreshItem = NSMenuItem()
+    let zcodeSummaryItem = NSMenuItem()
+    let zcodeRefreshItem = NSMenuItem()
 
     var onCodexSummaryLoaded: ((CodexUsageSummary) -> Void)?
     var onClaudeSummaryLoaded: ((CodexUsageSummary) -> Void)?
+    var onZCodeSummaryLoaded: ((CodexUsageSummary) -> Void)?
 
     private let codexSummaryView = CodexUsageSummaryMenuView()
     private let codexRefreshView = CodexUsageRefreshMenuView()
     private let claudeSummaryView = CodexUsageSummaryMenuView()
     private let claudeRefreshView = CodexUsageRefreshMenuView()
+    private let zcodeSummaryView = CodexUsageSummaryMenuView()
+    private let zcodeRefreshView = CodexUsageRefreshMenuView()
     private let codexQueue = DispatchQueue(label: "com.moarliu.moa-lite.codex-usage", qos: .utility)
     private let claudeQueue = DispatchQueue(label: "com.moarliu.moa-lite.claude-usage", qos: .utility)
+    private let zcodeQueue = DispatchQueue(label: "com.moarliu.moa-lite.zcode-usage", qos: .utility)
 
     private var codexTimer: Timer?
     private var claudeTimer: Timer?
+    private var zcodeTimer: Timer?
     private var codexSummary: CodexUsageSummary?
     private var claudeSummary: CodexUsageSummary?
+    private var zcodeSummary: CodexUsageSummary?
     private var codexRefreshInFlight = false
     private var claudeRefreshInFlight = false
+    private var zcodeRefreshInFlight = false
 
     private static let refreshMinimumDisplayDuration: TimeInterval = 0.6
 
     init(
         codexScanner: CodexUsageScanner = CodexUsageScanner(),
-        claudeScanner: ClaudeUsageScanner = ClaudeUsageScanner()
+        claudeScanner: ClaudeUsageScanner = ClaudeUsageScanner(),
+        zcodeScanner: ZCodeUsageScanner = ZCodeUsageScanner()
     ) {
         self.codexScanner = codexScanner
         self.claudeScanner = claudeScanner
+        self.zcodeScanner = zcodeScanner
     }
 
     func start() {
         startCodex()
         startClaude()
+        startZCode()
     }
 
     func stop() {
@@ -46,8 +59,11 @@ final class MoaUsageCoordinator {
         codexTimer = nil
         claudeTimer?.invalidate()
         claudeTimer = nil
+        zcodeTimer?.invalidate()
+        zcodeTimer = nil
         codexRefreshView.onRefresh = nil
         claudeRefreshView.onRefresh = nil
+        zcodeRefreshView.onRefresh = nil
     }
 
     func refreshCodex(forceRefresh: Bool) {
@@ -128,6 +144,45 @@ final class MoaUsageCoordinator {
         }
     }
 
+    func refreshZCode(forceRefresh: Bool) {
+        guard !zcodeRefreshInFlight else { return }
+        let startedAt = Date()
+        zcodeRefreshInFlight = true
+        zcodeRefreshView.setRefreshing(true)
+        zcodeSummaryView.apply(.loading(zcodeSummary))
+
+        zcodeQueue.async {
+            let result = Result {
+                try self.zcodeScanner.loadSummary(forceRefresh: forceRefresh)
+            }
+
+            DispatchQueue.main.async {
+                let completeRefresh = {
+                    self.zcodeRefreshInFlight = false
+                    self.zcodeRefreshView.setRefreshing(false)
+
+                    switch result {
+                    case .success(let summary):
+                        self.zcodeSummary = summary
+                        self.zcodeSummaryView.apply(.loaded(summary))
+                        self.onZCodeSummaryLoaded?(summary)
+                    case .failure(let error):
+                        self.zcodeSummaryView.apply(.failed(self.zcodeSummary, error.localizedDescription))
+                    }
+                }
+                let minimumDuration = forceRefresh ? Self.refreshMinimumDisplayDuration : 0
+                let delay = max(0, minimumDuration - Date().timeIntervalSince(startedAt))
+                if delay > 0 {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                        completeRefresh()
+                    }
+                } else {
+                    completeRefresh()
+                }
+            }
+        }
+    }
+
     private func startCodex() {
         codexSummaryItem.view = codexSummaryView
         codexRefreshItem.view = codexRefreshView
@@ -157,6 +212,22 @@ final class MoaUsageCoordinator {
         }
         if let claudeTimer {
             RunLoop.main.add(claudeTimer, forMode: .common)
+        }
+    }
+
+    private func startZCode() {
+        zcodeSummaryItem.view = zcodeSummaryView
+        zcodeRefreshItem.view = zcodeRefreshView
+        zcodeRefreshView.onRefresh = { [weak self] in
+            self?.refreshZCode(forceRefresh: true)
+        }
+        zcodeSummaryView.apply(.idle)
+        refreshZCode(forceRefresh: false)
+        zcodeTimer = Timer(timeInterval: 60, repeats: true) { [weak self] _ in
+            self?.refreshZCode(forceRefresh: false)
+        }
+        if let zcodeTimer {
+            RunLoop.main.add(zcodeTimer, forMode: .common)
         }
     }
 }

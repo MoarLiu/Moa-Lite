@@ -22,6 +22,8 @@ final class MoaMainMenuCoordinator {
         app.menu.addItem(app.codexProfilesItem)
         app.claudeDesktopProfilesItem.submenu = app.claudeDesktopProfilesMenu
         app.menu.addItem(app.claudeDesktopProfilesItem)
+        app.zcodeItem.submenu = app.zcodeMenu
+        app.menu.addItem(app.zcodeItem)
         app.providerBridgeItem.submenu = app.providerBridgeMenu
         app.menu.addItem(app.providerBridgeItem)
         app.menu.addItem(NSMenuItem.separator())
@@ -42,6 +44,7 @@ final class MoaMainMenuCoordinator {
         app.lastMenuRefreshAt = now
         rebuildProfileMenu()
         rebuildClaudeDesktopProfilesMenu()
+        rebuildZCodeMenu()
         rebuildProviderBridgeMenu()
         configureMoaDataMenu()
         refreshStatus()
@@ -87,8 +90,35 @@ final class MoaMainMenuCoordinator {
         app.remoteConnectionsItem.state = remoteEnabled ? .on : .off
 
         if let button = app.statusItem.button {
-            button.toolTip = MoaL10n.text("Moa-Lite - Codex Usage")
+            button.toolTip = MoaL10n.text("Moa-Lite - Codex, Claude, ZCode, Provider Bridge")
         }
+    }
+
+    func rebuildZCodeMenu() {
+        app.zcodeMenu.removeAllItems()
+        app.zcodeItem.title = MoaL10n.text("ZCode")
+        app.zcodeMenu.title = MoaL10n.text("ZCode")
+
+        app.zcodeMenu.addItem(app.usageCoordinator.zcodeSummaryItem)
+        app.zcodeMenu.addItem(app.usageCoordinator.zcodeRefreshItem)
+        app.zcodeDailyUsageAlertItem.target = app
+        app.zcodeDailyUsageAlertItem.title = DailyUsageAlertController.menuTitle(for: .zcode)
+        app.zcodeMenu.addItem(app.zcodeDailyUsageAlertItem)
+        app.zcodeUsageDetailsItem.target = app
+        app.zcodeMenu.addItem(app.zcodeUsageDetailsItem)
+        app.zcodeMenu.addItem(NSMenuItem.separator())
+
+        let openItem = NSMenuItem(title: MoaL10n.text("Open ZCode"), action: #selector(AppDelegate.openZCodeAction), keyEquivalent: "")
+        openItem.target = app
+        app.zcodeMenu.addItem(openItem)
+
+        let reopenItem = NSMenuItem(title: MoaL10n.text("Reopen ZCode"), action: #selector(AppDelegate.reopenZCodeAction), keyEquivalent: "")
+        reopenItem.target = app
+        app.zcodeMenu.addItem(reopenItem)
+
+        let openFolderItem = NSMenuItem(title: MoaL10n.text("Open ZCode Folder"), action: #selector(AppDelegate.openZCodeFolderAction), keyEquivalent: "")
+        openFolderItem.target = app
+        app.zcodeMenu.addItem(openFolderItem)
     }
 
     func rebuildProfileMenu() {
