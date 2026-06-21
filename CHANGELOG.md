@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.1 - 2026-06-21
+
+- Fixed Codex Official Mode restore so it preserves the selected `model_provider` value for session continuity.
+- Removed third-party `base_url` and `experimental_bearer_token` values from the selected provider when restoring Codex Official Mode.
+- Added regression coverage for restoring from direct third-party provider profiles such as `model_provider = "one"`.
+
 ## 1.1.0 - 2026-06-21
 
 - Added a ZCode menu with usage statistics, launch/relaunch actions, and quick access to `~/.zcode`.

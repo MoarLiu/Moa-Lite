@@ -37,7 +37,8 @@ private enum MoaLiteCoreTests {
             ("data root paths are Moa-Lite scoped", testDataRootPaths),
             ("provider bridge defaults use Moa-Lite port", testProviderBridgeDefaultPort),
             ("Codex bridge provider IDs use Moa-Lite prefix", testCodexBridgeProviderIDs),
-            ("official restore only removes Moa-Lite provider tables", testOfficialRestoreLeavesOriginalMoaTables),
+            ("official restore keeps selected provider identity", testOfficialRestoreKeepsSelectedProviderIdentity),
+            ("official restore strips selected direct provider credentials", testOfficialRestoreStripsSelectedDirectProviderCredentials),
             ("LiteLLM preset no longer uses original Moa model name", testLiteLLMPresetName),
             ("ZCode GLM pricing is estimated from usage tokens", testZCodePricing),
             ("ZCode usage scanner aggregates local SQLite usage", testZCodeUsageScanner)
@@ -120,7 +121,7 @@ private enum MoaLiteCoreTests {
         try expect(controller.providerID(for: custom, in: "") == "moa-lite-kimi_chat", "custom bridge provider ID should use Moa-Lite prefix")
     }
 
-    private static func testOfficialRestoreLeavesOriginalMoaTables() throws {
+    private static func testOfficialRestoreKeepsSelectedProviderIdentity() throws {
         let config = """
         model = "deepseek-chat"
         model_provider = "moa-lite-deepseek"
@@ -141,9 +142,44 @@ private enum MoaLiteCoreTests {
         let restored = MoaCodexConfigEditor.restoringOfficialMode(from: config)
         try expect(restored.contains("[model_providers.moa-deepseek]"), "Moa-Lite should not remove original Moa provider tables")
         try expect(restored.contains("original-token"), "original Moa provider secrets should not be touched by Moa-Lite official restore")
-        try expect(!restored.contains("[model_providers.moa-lite-deepseek]"), "Moa-Lite managed provider table should be removed")
-        try expect(!restored.contains("lite-token"), "Moa-Lite managed provider token should be removed")
-        try expect(!restored.contains(#"model_provider = "moa-lite-deepseek""#), "official restore should remove root provider selection")
+        try expect(restored.contains(#"model_provider = "moa-lite-deepseek""#), "official restore should preserve root provider selection")
+        try expect(restored.contains("[model_providers.moa-lite-deepseek]"), "selected provider table should stay available for session continuity")
+        try expect(restored.contains(#"name = "Moa-Lite DeepSeek""#), "selected provider display name should be preserved")
+        try expect(!restored.contains("http://127.0.0.1:19361/v1"), "selected provider base URL should be removed")
+        try expect(!restored.contains("lite-token"), "selected provider token should be removed")
+    }
+
+    private static func testOfficialRestoreStripsSelectedDirectProviderCredentials() throws {
+        let config = """
+        model_reasoning_effort = "xhigh"
+        disable_response_storage = true
+        model_provider = "one"
+
+        [model_providers.one]
+        name = "one"
+        base_url = "https://one.novnc.cc"
+        experimental_bearer_token = "sk-test"
+        wire_api = "responses"
+        requires_openai_auth = true
+
+        [model_providers.backup]
+        name = "backup"
+        base_url = "https://backup.example.com"
+        experimental_bearer_token = "backup-token"
+        wire_api = "responses"
+        requires_openai_auth = true
+        """
+
+        let restored = MoaCodexConfigEditor.restoringOfficialMode(from: config)
+        try expect(restored.contains(#"model_provider = "one""#), "official restore should keep the selected provider id")
+        try expect(restored.contains("[model_providers.one]"), "official restore should keep the selected provider table")
+        try expect(restored.contains(#"name = "one""#), "official restore should keep the selected provider name")
+        try expect(restored.contains(#"wire_api = "responses""#), "official restore should keep non-secret provider metadata")
+        try expect(restored.contains("requires_openai_auth = true"), "official restore should keep OpenAI auth mode metadata")
+        try expect(!restored.contains("https://one.novnc.cc"), "official restore should remove the selected provider base URL")
+        try expect(!restored.contains("sk-test"), "official restore should remove the selected provider token")
+        try expect(restored.contains("https://backup.example.com"), "official restore should leave unselected custom providers alone")
+        try expect(restored.contains("backup-token"), "official restore should not alter unselected custom provider tokens")
     }
 
     private static func testLiteLLMPresetName() throws {

@@ -18,6 +18,7 @@ enum MoaCodexConfigEditor {
     }
 
     static func restoringOfficialMode(from text: String) -> String {
+        let selectedProviderID = rootTomlStringValue(in: text, key: "model_provider")
         var outputLines: [String] = []
         var currentTable = ""
         var skippingProviderTable = false
@@ -27,7 +28,10 @@ enum MoaCodexConfigEditor {
 
             if let tableName = MoaTomlEditor.tableName(from: trimmed) {
                 currentTable = tableName
-                skippingProviderTable = isMoaManagedProviderTable(tableName)
+                skippingProviderTable = isUnselectedMoaManagedProviderTable(
+                    tableName,
+                    selectedProviderID: selectedProviderID
+                )
                 if skippingProviderTable {
                     continue
                 }
@@ -40,7 +44,11 @@ enum MoaCodexConfigEditor {
                 continue
             }
 
-            if isManagedRemovalLine(line, currentTable: currentTable) {
+            if isOfficialRestoreRemovalLine(
+                line,
+                currentTable: currentTable,
+                selectedProviderID: selectedProviderID
+            ) {
                 continue
             }
 
@@ -93,6 +101,66 @@ enum MoaCodexConfigEditor {
         tableName.hasPrefix("model_providers.moa-lite-")
     }
 
+    private static func isUnselectedMoaManagedProviderTable(_ tableName: String, selectedProviderID: String?) -> Bool {
+        guard isMoaManagedProviderTable(tableName) else {
+            return false
+        }
+        guard let selectedProviderID,
+              let providerID = providerID(fromTable: tableName)
+        else {
+            return true
+        }
+        return providerID.caseInsensitiveCompare(selectedProviderID) != .orderedSame
+    }
+
+    private static func isOfficialRestoreRemovalLine(
+        _ line: String,
+        currentTable: String,
+        selectedProviderID: String?
+    ) -> Bool {
+        if currentTable.isEmpty {
+            return isOfficialModeRootRemovedLine(line)
+        }
+        if isMoaManagedProviderTable(currentTable) {
+            return isMoaProviderRemovedLine(line)
+        }
+        guard isSelectedProviderTable(currentTable, selectedProviderID: selectedProviderID) else {
+            return false
+        }
+        return isMoaProviderRemovedLine(line)
+    }
+
+    private static func isSelectedProviderTable(_ tableName: String, selectedProviderID: String?) -> Bool {
+        guard let providerID = providerID(fromTable: tableName) else {
+            return false
+        }
+        guard let selectedProviderID else {
+            return false
+        }
+        return providerID.caseInsensitiveCompare(selectedProviderID) == .orderedSame
+    }
+
+    private static func providerID(fromTable tableName: String) -> String? {
+        let prefix = "model_providers."
+        guard tableName.hasPrefix(prefix) else {
+            return nil
+        }
+        let providerID = String(tableName.dropFirst(prefix.count))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return providerID.isEmpty ? nil : providerID
+    }
+
+    private static func rootTomlStringValue(in text: String, key: String) -> String? {
+        guard let entry = MoaTomlEditor.entries(in: text).first(where: { $0.table.isEmpty && $0.key == key }) else {
+            return nil
+        }
+        let value = entry.value
+        guard (value.hasPrefix("\"") && value.hasSuffix("\"")) || (value.hasPrefix("'") && value.hasSuffix("'")) else {
+            return nil
+        }
+        return MoaTomlEditor.unquoteString(value)
+    }
+
     private static func isOfficialModeRootRemovedLine(_ line: String) -> Bool {
         let trimmed = MoaTomlEditor.trimInlineComment(from: line)
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -104,7 +172,6 @@ enum MoaCodexConfigEditor {
             .trimmingCharacters(in: .whitespacesAndNewlines)
         return [
             "model",
-            "model_provider",
             "experimental_bearer_token",
             "base_url"
         ].contains(key)
