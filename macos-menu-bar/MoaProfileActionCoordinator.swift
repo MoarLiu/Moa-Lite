@@ -324,6 +324,10 @@ final class MoaProfileActionCoordinator {
         usageInsightsWindow.show(initialSource: .zcode)
     }
 
+    func applyZCodeOfficialModeAction() {
+        rebuildZCodeMenu()
+    }
+
     func openZCodeAction() {
         zcodeController.openZCode()
     }
@@ -451,6 +455,40 @@ final class MoaProfileActionCoordinator {
         }
     }
 
+    func applyCodexOfficialNoAccountAction() {
+        statusItemText.title = AppDelegate.statusTitle("Switching Codex Official...")
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            let result = Result {
+                try self.profileController.applyOfficialNoAccountMode()
+            }
+
+            switch result {
+            case .success:
+                self.controller.reopenCodex()
+            case .failure:
+                break
+            }
+
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let account):
+                    self.rebuildCodexProviderMenus()
+                    self.refreshStatus()
+                    if let account {
+                        self.statusItemText.title = AppDelegate.statusTitle("Codex Official · %@ · Reopened", account.displayTitle)
+                    } else {
+                        self.statusItemText.title = AppDelegate.statusTitle("Codex Official · %@ · Reopened", MoaL10n.text("Do Not Use Account"))
+                    }
+                case .failure(let error):
+                    NSSound.beep()
+                    self.statusItemText.title = AppDelegate.statusTitle("Failed")
+                    self.showError(error.localizedDescription)
+                }
+            }
+        }
+    }
+
     func applyCodexOfficialAccountAction(_ sender: NSMenuItem) {
         guard let id = sender.representedObject as? String else { return }
         statusItemText.title = AppDelegate.statusTitle("Switching Codex Official...")
@@ -503,7 +541,7 @@ final class MoaProfileActionCoordinator {
                 case .success(let account):
                     self.rebuildCodexProviderMenus()
                     self.refreshStatus()
-                    self.statusItemText.title = AppDelegate.statusTitle("Saved Codex Official account: %@", account.name)
+                    self.statusItemText.title = AppDelegate.statusTitle("Saved Codex Official account: %@", account.displayTitle)
                 case .failure(let error):
                     NSSound.beep()
                     self.statusItemText.title = AppDelegate.statusTitle("Failed")
@@ -530,7 +568,7 @@ final class MoaProfileActionCoordinator {
         do {
             let updated = try profileController.renameSelectedOfficialAccount(name: name)
             rebuildCodexProviderMenus()
-            statusItemText.title = AppDelegate.statusTitle("Renamed %@", updated.name)
+            statusItemText.title = AppDelegate.statusTitle("Renamed %@", updated.displayTitle)
         } catch {
             NSSound.beep()
             statusItemText.title = AppDelegate.statusTitle("Failed")
@@ -546,14 +584,14 @@ final class MoaProfileActionCoordinator {
 
         guard MoaNonBlockingAlert.confirm(
             messageText: MoaL10n.text("Delete Codex Official Account?"),
-            informativeText: String(format: MoaL10n.text("Delete \"%@\" from Moa's saved Codex official accounts. Current Codex files will be backed up first."), account.name),
+            informativeText: String(format: MoaL10n.text("Delete \"%@\" from Moa's saved Codex official accounts. Current Codex files will be backed up first."), account.displayTitle),
             primaryButtonTitle: MoaL10n.text("Delete"),
             tone: .danger
         ) else {
             return
         }
 
-        statusItemText.title = AppDelegate.statusTitle("Deleting %@...", account.name)
+        statusItemText.title = AppDelegate.statusTitle("Deleting %@...", account.displayTitle)
         DispatchQueue.global(qos: .userInitiated).async {
             let result = Result {
                 try self.profileController.deleteSelectedOfficialAccount()

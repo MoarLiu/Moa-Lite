@@ -20,6 +20,7 @@ extension AppDelegate {
     @objc func showClaudeUsageDetailsAction() { profileActionCoordinator.showClaudeUsageDetailsAction() }
     @objc func showZCodeDailyUsageAlertAction() { profileActionCoordinator.showZCodeDailyUsageAlertAction() }
     @objc func showZCodeUsageDetailsAction() { profileActionCoordinator.showZCodeUsageDetailsAction() }
+    @objc func applyZCodeOfficialModeAction() { profileActionCoordinator.applyZCodeOfficialModeAction() }
     @objc func openZCodeAction() { profileActionCoordinator.openZCodeAction() }
     @objc func reopenZCodeAction() { profileActionCoordinator.reopenZCodeAction() }
     @objc func openZCodeFolderAction() { profileActionCoordinator.openZCodeFolderAction() }
@@ -30,6 +31,7 @@ extension AppDelegate {
     @objc func openClaudeDesktopFolderAction() { profileActionCoordinator.openClaudeDesktopFolderAction() }
     @objc func openClaudeDesktop3PFolderAction() { profileActionCoordinator.openClaudeDesktop3PFolderAction() }
     @objc func restoreCodexOfficialAction() { profileActionCoordinator.restoreCodexOfficialAction() }
+    @objc func applyCodexOfficialNoAccountAction() { profileActionCoordinator.applyCodexOfficialNoAccountAction() }
     @objc func applyCodexOfficialAccountAction(_ sender: NSMenuItem) { profileActionCoordinator.applyCodexOfficialAccountAction(sender) }
     @objc func addCodexOfficialAccountAction() { profileActionCoordinator.addCodexOfficialAccountAction() }
     @objc func renameCodexOfficialAccountAction() { profileActionCoordinator.renameCodexOfficialAccountAction() }

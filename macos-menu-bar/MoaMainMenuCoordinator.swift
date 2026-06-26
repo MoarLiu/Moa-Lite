@@ -108,6 +108,12 @@ final class MoaMainMenuCoordinator {
         app.zcodeMenu.addItem(app.zcodeUsageDetailsItem)
         app.zcodeMenu.addItem(NSMenuItem.separator())
 
+        let zcodeOfficialItem = NSMenuItem(title: MoaL10n.text("ZCode Official Mode"), action: #selector(AppDelegate.applyZCodeOfficialModeAction), keyEquivalent: "")
+        zcodeOfficialItem.target = app
+        zcodeOfficialItem.state = .on
+        app.zcodeMenu.addItem(zcodeOfficialItem)
+        app.zcodeMenu.addItem(NSMenuItem.separator())
+
         let openItem = NSMenuItem(title: MoaL10n.text("Open ZCode"), action: #selector(AppDelegate.openZCodeAction), keyEquivalent: "")
         openItem.target = app
         app.zcodeMenu.addItem(openItem)
@@ -134,6 +140,7 @@ final class MoaMainMenuCoordinator {
         let isProviderBridgeMode = app.profileController.isProviderBridgeModeSelected()
         let selectedName = app.currentCodexSelectionName()
         app.codexProfilesItem.title = "Codex · \(selectedName)"
+        let isNoOfficialAccountMode = selectedOfficialAccountID == nil
 
         app.codexProfilesMenu.addItem(app.usageCoordinator.codexSummaryItem)
         app.codexProfilesMenu.addItem(app.usageCoordinator.codexRefreshItem)
@@ -156,15 +163,22 @@ final class MoaMainMenuCoordinator {
         let useOfficialModeItem = NSMenuItem(title: MoaL10n.text("Use Codex Official Mode"), action: #selector(AppDelegate.restoreCodexOfficialAction), keyEquivalent: "")
         useOfficialModeItem.target = app
         useOfficialModeItem.state = selectedID == nil ? .on : .off
+        useOfficialModeItem.isEnabled = !isNoOfficialAccountMode
         app.codexOfficialMenu.addItem(useOfficialModeItem)
         app.codexOfficialMenu.addItem(NSMenuItem.separator())
+
+        let noAccountItem = NSMenuItem(title: MoaL10n.text("Do Not Use Account"), action: #selector(AppDelegate.applyCodexOfficialNoAccountAction), keyEquivalent: "")
+        noAccountItem.target = app
+        noAccountItem.state = isNoOfficialAccountMode ? .on : .off
+        app.codexOfficialMenu.addItem(noAccountItem)
+
         if officialAccounts.isEmpty {
             let emptyItem = NSMenuItem(title: MoaL10n.text("No Official Accounts"), action: nil, keyEquivalent: "")
             emptyItem.isEnabled = false
             app.codexOfficialMenu.addItem(emptyItem)
         } else {
             for account in officialAccounts {
-                let item = NSMenuItem(title: account.name, action: #selector(AppDelegate.applyCodexOfficialAccountAction(_:)), keyEquivalent: "")
+                let item = NSMenuItem(title: account.displayTitle, action: #selector(AppDelegate.applyCodexOfficialAccountAction(_:)), keyEquivalent: "")
                 item.target = app
                 item.representedObject = account.id
                 item.state = account.id == selectedOfficialAccountID ? .on : .off

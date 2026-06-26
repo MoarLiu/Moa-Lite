@@ -7,9 +7,42 @@ struct ProfileDatabase: Codable {
 struct CodexOfficialAccount: Codable, Equatable {
     var id: String
     var name: String
+    var email: String?
     var authPath: String
     var createdAt: String
     var lastUsedAt: String?
+
+    var displayTitle: String {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let email = normalizedEmail else {
+            return trimmedName
+        }
+
+        if trimmedName.isEmpty || trimmedName == email || Self.isDefaultDisplayName(trimmedName) {
+            return email
+        }
+
+        if trimmedName.hasSuffix("(\(email))") {
+            return trimmedName
+        }
+
+        return "\(trimmedName)(\(email))"
+    }
+
+    static func isDefaultDisplayName(_ name: String) -> Bool {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed == "OpenAI Current Account"
+            || trimmed == MoaL10n.text("OpenAI Current Account")
+    }
+
+    private var normalizedEmail: String? {
+        guard let email else {
+            return nil
+        }
+
+        let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
 }
 
 struct CodexOfficialAccountDatabase: Codable {

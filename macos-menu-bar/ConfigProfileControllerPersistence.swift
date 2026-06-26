@@ -88,9 +88,11 @@ extension ConfigProfileController {
 
     func authJSONString(from auth: [String: Any]) throws -> String {
         let normalized = normalizedMoaAuth(auth)
+        let authMode = authStringValue(normalized["auth_mode"]) ?? "chatgpt"
+        let apiKey = normalized["OPENAI_API_KEY"] ?? NSNull()
         var fields = [
-            #"  "auth_mode": "chatgpt""#,
-            #"  "OPENAI_API_KEY": null"#
+            #"  "auth_mode": \#(try jsonScalarText(authMode))"#,
+            #"  "OPENAI_API_KEY": \#(try jsonScalarText(apiKey))"#
         ]
 
         if let tokens = normalized["tokens"] {
@@ -194,20 +196,35 @@ extension ConfigProfileController {
             return
         }
 
+        database.accounts[index].email = officialAuthEmail(from: auth) ?? database.accounts[index].email
         database.accounts[index].lastUsedAt = Self.isoTimestamp()
         try writeAuthJSON(auth, to: officialAuthURL(for: database.accounts[index]))
         try saveOfficialAccountDatabase(database)
     }
 
     func normalizedMoaAuth(_ auth: [String: Any]) -> [String: Any] {
-        var normalized = Self.defaultAuthJSON()
         if let tokens = auth["tokens"] {
+            var normalized = Self.defaultAuthJSON()
             normalized["tokens"] = tokens
+            if let lastRefresh = auth["last_refresh"] {
+                normalized["last_refresh"] = lastRefresh
+            }
+            return normalized
         }
-        if let lastRefresh = auth["last_refresh"] {
-            normalized["last_refresh"] = lastRefresh
+
+        if isNoAccountAuth(auth) {
+            return Self.noAccountAuthJSON()
         }
-        return normalized
+
+        return Self.defaultAuthJSON()
+    }
+
+    func isNoAccountAuth(_ auth: [String: Any]) -> Bool {
+        guard authStringValue(auth["auth_mode"]) == "apikey" else {
+            return false
+        }
+
+        return authStringValue(auth["OPENAI_API_KEY"]) == "null"
     }
 
     func authStringValue(_ value: Any?) -> String? {
@@ -216,6 +233,17 @@ extension ConfigProfileController {
         }
 
         return value as? String
+    }
+
+    func authAPIKeyValue(_ value: Any?) -> String? {
+        guard let apiKey = authStringValue(value)?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !apiKey.isEmpty,
+              apiKey.lowercased() != "null"
+        else {
+            return nil
+        }
+
+        return apiKey
     }
 
     func jsonValuesEqual(_ lhs: Any?, _ rhs: Any?) -> Bool {
@@ -348,6 +376,13 @@ extension ConfigProfileController {
         [
             "auth_mode": "chatgpt",
             "OPENAI_API_KEY": NSNull()
+        ]
+    }
+
+    static func noAccountAuthJSON() -> [String: Any] {
+        [
+            "auth_mode": "apikey",
+            "OPENAI_API_KEY": "null"
         ]
     }
 }

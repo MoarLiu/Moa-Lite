@@ -80,6 +80,7 @@
 "Delete Selected Config" = "删除选中配置";
 "Delete Selected Provider" = "删除选中供应商";
 "Diagnostic Package Exported" = "诊断包已导出";
+"Do Not Use Account" = "不使用账号";
 "Edit" = "编辑";
 "Edit Claude Desktop Provider" = "编辑 Claude Desktop 供应商";
 "Edit Codex Config" = "编辑 Codex 配置";
@@ -251,4 +252,5 @@
 "Use This Mac" = "使用这台 Mac";
 "Unable to read ZCode usage database." = "无法读取 ZCode 用量数据库。";
 "ZCode" = "ZCode";
+"ZCode Official Mode" = "ZCode 官方模式";
 "ZCode reopened" = "ZCode 已重启";

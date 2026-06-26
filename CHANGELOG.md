@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.2 - 2026-06-26
+
+- Show saved Codex official accounts with their email address, including renamed accounts such as `Plus(email@example.com)`.
+- Added a default checked ZCode official mode item to the ZCode menu.
+- Added a Codex official no-account option that writes `auth.json` in API key mode, keeps or selects a direct Codex API config, and saves the current login as an account when one is available.
+- Disabled the Codex official restore button while the no-account option is selected.
+
 ## 1.1.1 - 2026-06-21
 
 - Fixed Codex Official Mode restore so it preserves the selected `model_provider` value for session continuity.

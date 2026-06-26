@@ -80,6 +80,7 @@
 "Delete Selected Config" = "Delete Selected Config";
 "Delete Selected Provider" = "Delete Selected Provider";
 "Diagnostic Package Exported" = "Diagnostic Package Exported";
+"Do Not Use Account" = "Do Not Use Account";
 "Edit" = "Edit";
 "Edit Claude Desktop Provider" = "Edit Claude Desktop Provider";
 "Edit Codex Config" = "Edit Codex Config";
@@ -251,4 +252,5 @@
 "Use This Mac" = "Use This Mac";
 "Unable to read ZCode usage database." = "Unable to read ZCode usage database.";
 "ZCode" = "ZCode";
+"ZCode Official Mode" = "ZCode Official Mode";
 "ZCode reopened" = "ZCode reopened";

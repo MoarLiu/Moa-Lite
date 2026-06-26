@@ -39,6 +39,12 @@ private enum MoaLiteCoreTests {
             ("Codex bridge provider IDs use Moa-Lite prefix", testCodexBridgeProviderIDs),
             ("official restore keeps selected provider identity", testOfficialRestoreKeepsSelectedProviderIdentity),
             ("official restore strips selected direct provider credentials", testOfficialRestoreStripsSelectedDirectProviderCredentials),
+            ("official account displays email from auth token", testOfficialAccountDisplaysEmailFromAuthToken),
+            ("official no-account mode preserves third-party config without login", testOfficialNoAccountPreservesThirdPartyConfigWithoutLogin),
+            ("official no-account mode captures current login without selecting it", testOfficialNoAccountCapturesCurrentLoginWithoutSelectingIt),
+            ("official no-account mode selects first direct config when none selected", testOfficialNoAccountSelectsFirstDirectConfigWhenNoneSelected),
+            ("official no-account mode deduplicates current login by email", testOfficialNoAccountDeduplicatesCurrentLoginByEmail),
+            ("official account list syncs selected account email", testOfficialAccountListSyncsSelectedAccountEmail),
             ("LiteLLM preset no longer uses original Moa model name", testLiteLLMPresetName),
             ("ZCode GLM pricing is estimated from usage tokens", testZCodePricing),
             ("ZCode usage scanner aggregates local SQLite usage", testZCodeUsageScanner)
@@ -181,6 +187,253 @@ private enum MoaLiteCoreTests {
         try expect(restored.contains("https://backup.example.com"), "official restore should leave unselected custom providers alone")
         try expect(restored.contains("backup-token"), "official restore should not alter unselected custom provider tokens")
     }
+
+    private static func testOfficialAccountDisplaysEmailFromAuthToken() throws {
+        let home = try temporaryHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+
+        let codexHome = home.appendingPathComponent(".codex", isDirectory: true)
+        try FileManager.default.createDirectory(at: codexHome, withIntermediateDirectories: true)
+        let email = "cooloosy@outlook.com"
+        let idToken = try testJWT(email: email)
+        try """
+        {
+          "auth_mode": "chatgpt",
+          "tokens": {
+            "access_token": "access-token",
+            "id_token": "\(idToken)",
+            "refresh_token": "refresh-token"
+          },
+          "last_refresh": "2026-06-26T00:00:00Z"
+        }
+        """.write(to: codexHome.appendingPathComponent("auth.json"), atomically: true, encoding: .utf8)
+
+        let controller = ConfigProfileController(environment: [
+            "HOME": home.path,
+            "CODEX_HOME": codexHome.path
+        ])
+        let accounts = try controller.officialAccounts()
+        try expect(accounts.count == 1, "bootstrap should save the current Codex official login")
+        guard let account = accounts.first else {
+            throw TestError.failure("saved account should be available")
+        }
+
+        try expect(account.email == email, "saved official account should record the email from id_token")
+        try expect(account.displayTitle == email, "default saved account should display the email")
+        try expect(controller.selectedOfficialAccountName() == email, "selected official account should expose the email display title")
+
+        let renamed = try controller.renameSelectedOfficialAccount(name: "Plus")
+        try expect(renamed.displayTitle == "Plus(\(email))", "renamed official account should display name plus email")
+        try expect(controller.selectedOfficialAccountName() == "Plus(\(email))", "selected renamed official account should expose name plus email")
+    }
+
+    private static func testOfficialNoAccountPreservesThirdPartyConfigWithoutLogin() throws {
+        let home = try temporaryHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+
+        let codexHome = home.appendingPathComponent(".codex", isDirectory: true)
+        try FileManager.default.createDirectory(at: codexHome, withIntermediateDirectories: true)
+        try thirdPartyConfig.write(to: codexHome.appendingPathComponent("config.toml"), atomically: true, encoding: .utf8)
+
+        let controller = ConfigProfileController(environment: [
+            "HOME": home.path,
+            "CODEX_HOME": codexHome.path
+        ])
+        let account = try controller.applyOfficialNoAccountMode()
+        let config = try String(contentsOf: codexHome.appendingPathComponent("config.toml"), encoding: .utf8)
+        let auth = try String(contentsOf: codexHome.appendingPathComponent("auth.json"), encoding: .utf8)
+        let selectedProfileID = try controller.selectedProfileID()
+        let selectedAccountID = try controller.selectedOfficialAccountID()
+
+        try expect(account == nil, "no-account mode should not create an account when Codex is not logged in")
+        try expect(selectedProfileID != nil, "no-account mode should preserve selected direct profile state")
+        try expect(selectedAccountID == nil, "no-account mode should select the no-account option")
+        try expect(config.contains(#"base_url = "https://one.novnc.cc""#), "no-account mode should preserve config.toml base_url")
+        try expect(config.contains(#"experimental_bearer_token = "sk-test""#), "no-account mode should preserve config.toml token")
+        try expect(auth == noAccountAuthJSONText, "no-account mode should write Codex auth in API key mode")
+    }
+
+    private static func testOfficialNoAccountCapturesCurrentLoginWithoutSelectingIt() throws {
+        let home = try temporaryHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+
+        let codexHome = home.appendingPathComponent(".codex", isDirectory: true)
+        try FileManager.default.createDirectory(at: codexHome, withIntermediateDirectories: true)
+        try thirdPartyConfig.write(to: codexHome.appendingPathComponent("config.toml"), atomically: true, encoding: .utf8)
+
+        let email = "cooloosy@outlook.com"
+        let idToken = try testJWT(email: email)
+        try """
+        {
+          "auth_mode": "chatgpt",
+          "tokens": {
+            "access_token": "access-token",
+            "id_token": "\(idToken)",
+            "refresh_token": "refresh-token"
+          },
+          "last_refresh": "2026-06-26T00:00:00Z"
+        }
+        """.write(to: codexHome.appendingPathComponent("auth.json"), atomically: true, encoding: .utf8)
+
+        let controller = ConfigProfileController(environment: [
+            "HOME": home.path,
+            "CODEX_HOME": codexHome.path
+        ])
+        let account = try controller.applyOfficialNoAccountMode()
+        let config = try String(contentsOf: codexHome.appendingPathComponent("config.toml"), encoding: .utf8)
+        let auth = try String(contentsOf: codexHome.appendingPathComponent("auth.json"), encoding: .utf8)
+        let selectedProfileID = try controller.selectedProfileID()
+        let selectedAccountID = try controller.selectedOfficialAccountID()
+        let accountTitles = try controller.officialAccounts().map(\.displayTitle)
+
+        try expect(account == nil, "logged-in no-account click should not keep using the current login")
+        try expect(selectedProfileID != nil, "logged-in no-account click should preserve selected direct profile state")
+        try expect(selectedAccountID == nil, "logged-in no-account click should select the no-account option")
+        try expect(accountTitles.contains(email), "saved account should appear below the no-account option")
+        try expect(config.contains(#"base_url = "https://one.novnc.cc""#), "logged-in no-account mode should preserve config.toml base_url")
+        try expect(config.contains(#"experimental_bearer_token = "sk-test""#), "logged-in no-account mode should preserve config.toml token")
+        try expect(auth == noAccountAuthJSONText, "logged-in no-account mode should write Codex auth in API key mode")
+    }
+
+    private static func testOfficialNoAccountSelectsFirstDirectConfigWhenNoneSelected() throws {
+        let home = try temporaryHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+
+        let codexHome = home.appendingPathComponent(".codex", isDirectory: true)
+        try FileManager.default.createDirectory(at: codexHome, withIntermediateDirectories: true)
+
+        let controller = ConfigProfileController(environment: [
+            "HOME": home.path,
+            "CODEX_HOME": codexHome.path
+        ])
+        let profile = try controller.addProfile(
+            name: "First API",
+            baseURL: "https://api.example.com/v1",
+            apiKey: "sk-first"
+        )
+        let selectedProfileIDBeforeNoAccount = try controller.selectedProfileID()
+        try expect(selectedProfileIDBeforeNoAccount == nil, "newly added direct profile should not be selected by setup")
+
+        _ = try controller.applyOfficialNoAccountMode()
+        let config = try String(contentsOf: codexHome.appendingPathComponent("config.toml"), encoding: .utf8)
+        let auth = try String(contentsOf: codexHome.appendingPathComponent("auth.json"), encoding: .utf8)
+        let selectedProfileID = try controller.selectedProfileID()
+        let selectedAccountID = try controller.selectedOfficialAccountID()
+
+        try expect(selectedProfileID == profile.id, "no-account mode should select the first direct Codex config when none is selected")
+        try expect(selectedAccountID == nil, "no-account fallback should not select an official account")
+        try expect(config.contains(#"base_url = "https://api.example.com/v1""#), "first direct config should be written to config.toml")
+        try expect(config.contains(#"experimental_bearer_token = "sk-first""#), "first direct config token should be written to config.toml")
+        try expect(auth == noAccountAuthJSONText, "no-account fallback should write Codex auth in API key mode")
+    }
+
+    private static func testOfficialNoAccountDeduplicatesCurrentLoginByEmail() throws {
+        let home = try temporaryHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+
+        let codexHome = home.appendingPathComponent(".codex", isDirectory: true)
+        try FileManager.default.createDirectory(at: codexHome, withIntermediateDirectories: true)
+        try thirdPartyConfig.write(to: codexHome.appendingPathComponent("config.toml"), atomically: true, encoding: .utf8)
+
+        let email = "cooloosy@outlook.com"
+        try authJSON(email: email, refreshToken: "refresh-token-old")
+            .write(to: codexHome.appendingPathComponent("auth.json"), atomically: true, encoding: .utf8)
+
+        let controller = ConfigProfileController(environment: [
+            "HOME": home.path,
+            "CODEX_HOME": codexHome.path
+        ])
+        _ = try controller.renameSelectedOfficialAccount(name: "Plus_TR")
+
+        try authJSON(email: email, refreshToken: "refresh-token-new")
+            .write(to: codexHome.appendingPathComponent("auth.json"), atomically: true, encoding: .utf8)
+
+        _ = try controller.applyOfficialNoAccountMode()
+        let accounts = try controller.officialAccounts()
+        let selectedAccountID = try controller.selectedOfficialAccountID()
+
+        try expect(accounts.count == 1, "no-account mode should update the existing email-matched account instead of creating a duplicate")
+        try expect(accounts.first?.displayTitle == "Plus_TR(\(email))", "existing renamed account should keep its name and email")
+        try expect(selectedAccountID == nil, "no-account option should remain selected after deduplication")
+    }
+
+    private static func testOfficialAccountListSyncsSelectedAccountEmail() throws {
+        let home = try temporaryHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+
+        let codexHome = home.appendingPathComponent(".codex", isDirectory: true)
+        try FileManager.default.createDirectory(at: codexHome, withIntermediateDirectories: true)
+        try thirdPartyConfig.write(to: codexHome.appendingPathComponent("config.toml"), atomically: true, encoding: .utf8)
+        try """
+        {
+          "auth_mode": "chatgpt",
+          "tokens": {
+            "access_token": "access-token",
+            "refresh_token": "refresh-token"
+          },
+          "last_refresh": "2026-06-26T00:00:00Z"
+        }
+        """.write(to: codexHome.appendingPathComponent("auth.json"), atomically: true, encoding: .utf8)
+
+        let controller = ConfigProfileController(environment: [
+            "HOME": home.path,
+            "CODEX_HOME": codexHome.path
+        ])
+        _ = try controller.renameSelectedOfficialAccount(name: "K12")
+
+        let email = "k12@example.com"
+        try authJSON(email: email, refreshToken: "refresh-token-new")
+            .write(to: codexHome.appendingPathComponent("auth.json"), atomically: true, encoding: .utf8)
+
+        let accounts = try controller.officialAccounts()
+
+        try expect(accounts.count == 1, "selected account sync should not create another account")
+        try expect(accounts.first?.displayTitle == "K12(\(email))", "selected account should show email after Codex relogin")
+    }
+
+    private static func testJWT(email: String) throws -> String {
+        let payload = try JSONSerialization.data(withJSONObject: ["email": email], options: [])
+        let payloadText = payload
+            .base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+        return "header.\(payloadText).signature"
+    }
+
+    private static func authJSON(email: String, refreshToken: String) throws -> String {
+        let idToken = try testJWT(email: email)
+        return """
+        {
+          "auth_mode": "chatgpt",
+          "tokens": {
+            "access_token": "access-token",
+            "id_token": "\(idToken)",
+            "refresh_token": "\(refreshToken)"
+          },
+          "last_refresh": "2026-06-26T00:00:00Z"
+        }
+        """
+    }
+
+    private static let thirdPartyConfig = """
+    model_provider = "one"
+    model = "gpt-5.5"
+
+    [model_providers.one]
+    name = "one"
+    base_url = "https://one.novnc.cc"
+    experimental_bearer_token = "sk-test"
+    wire_api = "responses"
+    requires_openai_auth = true
+    """
+
+    private static let noAccountAuthJSONText = """
+    {
+      "auth_mode": "apikey",
+      "OPENAI_API_KEY": "null"
+    }
+    """ + "\n"
 
     private static func testLiteLLMPresetName() throws {
         let preset = MoaProviderPresets.responsesGateways.first { $0.id == "litellm-responses-gateway" }

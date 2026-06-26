@@ -155,7 +155,11 @@ extension ConfigProfileController {
         var database = CodexOfficialAccountDatabase(selectedAccountID: nil, accounts: [])
         let auth = readAuthJSON(from: moaAuthURL)
         if hasOfficialAuthSession(auth) {
-            var account = makeOfficialAccount(name: MoaL10n.text("OpenAI Current Account"))
+            let email = officialAuthEmail(from: auth)
+            var account = makeOfficialAccount(
+                name: email ?? MoaL10n.text("OpenAI Current Account"),
+                email: email
+            )
             account.lastUsedAt = Self.isoTimestamp()
             try writeAuthJSON(auth, to: officialAuthURL(for: account))
             database.selectedAccountID = account.id
@@ -176,7 +180,7 @@ extension ConfigProfileController {
         let baseURL = tomlStringValue(in: config, table: providerTable, key: "base_url")
             ?? firstTomlStringValue(in: config, key: "base_url")
             ?? ""
-        let apiKey = authStringValue(readAuthJSON(from: codexAuthURL)["OPENAI_API_KEY"])
+        let apiKey = authAPIKeyValue(readAuthJSON(from: codexAuthURL)["OPENAI_API_KEY"])
             ?? tomlStringValue(in: config, table: providerTable, key: "experimental_bearer_token")
             ?? tomlStringValue(in: config, table: providerTable, key: "ANTHROPIC_AUTH_TOKEN")
             ?? firstTomlStringValue(in: config, key: "experimental_bearer_token")

@@ -35,6 +35,8 @@ check_mach_o_deployment_target() {
     echo "Mach-O deployment target mismatch in $executable: expected $MACOS_DEPLOYMENT_TARGET, got $minos" >&2
     exit 1
   fi
+
+  return 0
 }
 
 MOA_APP_ABS_SOURCES=()
