@@ -22,10 +22,10 @@ extension ConfigProfileController {
     func providerID(for profile: ConfigProfile, in config: String) -> String {
         if profile.usesLocalProviderBridge {
             if profile.resolvedProviderKind == .deepseek && profile.name.localizedCaseInsensitiveContains("deepseek") {
-                return "moa-lite-deepseek"
+                return "moa-deepseek"
             }
             let slug = Self.providerIdentifierSlug(profile.name)
-            return slug.isEmpty ? "moa-lite-bridge" : "moa-lite-\(slug)"
+            return slug.isEmpty ? "moa-bridge" : "moa-\(slug)"
         }
         return selectedProviderID(in: config)
     }
@@ -310,7 +310,7 @@ extension ConfigProfileController {
     }
 
     func providerDisplayName(for profile: ConfigProfile) -> String {
-        profile.usesLocalProviderBridge ? "Moa-Lite \(profile.name)" : profile.name
+        profile.usesLocalProviderBridge ? "Moa \(profile.name)" : profile.name
     }
 
     func removeProviderTables(from text: String) -> String {

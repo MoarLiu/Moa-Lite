@@ -3,16 +3,16 @@ import Foundation
 import PackageDescription
 
 let package = Package(
-    name: "MoaLite",
+    name: "Moa",
     platforms: [
         .macOS(.v12)
     ],
     products: [
-        .executable(name: "Moa-Lite", targets: ["MoaLite"])
+        .executable(name: "Moa", targets: ["Moa"])
     ],
     targets: [
         .executableTarget(
-            name: "MoaLite",
+            name: "Moa",
             path: "macos-menu-bar",
             linkerSettings: [
                 .linkedFramework("ApplicationServices"),

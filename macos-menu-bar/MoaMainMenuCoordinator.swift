@@ -33,7 +33,7 @@ final class MoaMainMenuCoordinator {
         app.menu.addItem(app.moaDataItem)
         app.menu.addItem(NSMenuItem.separator())
 
-        app.menu.addItem(NSMenuItem(title: MoaL10n.text("Quit Moa-Lite"), action: #selector(AppDelegate.quitAction), keyEquivalent: "q"))
+        app.menu.addItem(NSMenuItem(title: MoaL10n.text("Quit Moa"), action: #selector(AppDelegate.quitAction), keyEquivalent: "q"))
     }
 
     func menuWillOpen(_ menu: NSMenu) {
@@ -90,7 +90,7 @@ final class MoaMainMenuCoordinator {
         app.remoteConnectionsItem.state = remoteEnabled ? .on : .off
 
         if let button = app.statusItem.button {
-            button.toolTip = MoaL10n.text("Moa-Lite - Codex, Claude, ZCode, Provider Bridge")
+            button.toolTip = MoaL10n.text("Moa - Codex, Claude, ZCode, Provider Bridge")
         }
     }
 
@@ -268,7 +268,7 @@ final class MoaMainMenuCoordinator {
         app.codexProfilesMenu.addItem(NSMenuItem(title: MoaL10n.text("Open Codex"), action: #selector(AppDelegate.openCodexAction), keyEquivalent: ""))
         app.codexProfilesMenu.addItem(NSMenuItem(title: MoaL10n.text("Reopen Codex"), action: #selector(AppDelegate.reopenCodexAction), keyEquivalent: ""))
         app.codexProfilesMenu.addItem(NSMenuItem.separator())
-        app.codexProfilesMenu.addItem(NSMenuItem(title: MoaL10n.text("Open Moa-Lite Folder"), action: #selector(AppDelegate.openMoaFolderAction), keyEquivalent: ""))
+        app.codexProfilesMenu.addItem(NSMenuItem(title: MoaL10n.text("Open Moa Folder"), action: #selector(AppDelegate.openMoaFolderAction), keyEquivalent: ""))
         app.codexProfilesMenu.addItem(NSMenuItem(title: MoaL10n.text("Open Codex Folder"), action: #selector(AppDelegate.openCodexFolderAction), keyEquivalent: ""))
     }
 

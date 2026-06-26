@@ -56,11 +56,11 @@ enum MoaProviderBridgeServerError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .bindFailed(let errnoValue):
-            return "Moa-Lite provider bridge could not bind to 127.0.0.1: \(String(cString: strerror(errnoValue)))."
+            return "Moa provider bridge could not bind to 127.0.0.1: \(String(cString: strerror(errnoValue)))."
         case .invalidRequest:
-            return "Moa-Lite provider bridge received an invalid HTTP request."
+            return "Moa provider bridge received an invalid HTTP request."
         case .missingBridgeToken:
-            return "Moa-Lite provider bridge profile is missing its local bridge token."
+            return "Moa provider bridge profile is missing its local bridge token."
         }
     }
 }
@@ -68,8 +68,8 @@ enum MoaProviderBridgeServerError: LocalizedError {
 final class MoaProviderBridgeServer {
     private let urlSession: URLSession
     private let diagnostics: MoaProviderBridgeDiagnostics
-    private let acceptQueue = DispatchQueue(label: "moa-lite.provider-bridge.accept")
-    private let workerQueue = DispatchQueue(label: "moa-lite.provider-bridge.worker", attributes: .concurrent)
+    private let acceptQueue = DispatchQueue(label: "moa.provider-bridge.accept")
+    private let workerQueue = DispatchQueue(label: "moa.provider-bridge.worker", attributes: .concurrent)
     private let stateLock = NSRecursiveLock()
     private var socketFD: Int32 = -1
     private var acceptSource: DispatchSourceRead?

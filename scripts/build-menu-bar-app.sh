@@ -7,14 +7,14 @@ source "$ROOT/scripts/version.env"
 # shellcheck source=sources.env
 source "$ROOT/scripts/sources.env"
 
-APP_NAME="Moa-Lite"
+APP_NAME="Moa"
 APP="$ROOT/$APP_NAME.app"
 CONTENTS="$APP/Contents"
 MACOS="$CONTENTS/MacOS"
 RESOURCES="$CONTENTS/Resources"
 EXECUTABLE="$MACOS/$APP_NAME"
-BUNDLE_ID="com.moarliu.moa-lite"
-CODE_SIGN_IDENTITY="${CODE_SIGN_IDENTITY:-Moa-Lite Local Development Code Signing}"
+BUNDLE_ID="com.moarliu.moa"
+CODE_SIGN_IDENTITY="${CODE_SIGN_IDENTITY:-Moa Local Development Code Signing}"
 
 check_mach_o_deployment_target() {
   local executable="$1"

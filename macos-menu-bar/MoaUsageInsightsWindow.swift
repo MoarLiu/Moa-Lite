@@ -355,7 +355,7 @@ private struct MoaUsageInsightsView: View {
             if let error = model.errorMessage {
                 Text(error)
                     .font(.system(size: 12))
-                    .foregroundStyle(MoaLiteTheme.coral)
+                    .foregroundStyle(MoaTheme.coral)
             }
             table
             fallbackPanel
@@ -377,7 +377,7 @@ private struct MoaUsageInsightsView: View {
     private var alertPanel: some View {
         HStack(alignment: .center, spacing: 12) {
             Image(systemName: model.usageAlertThreshold == nil ? "bell.slash" : "bell.badge")
-                .foregroundStyle(model.usageAlertThreshold == nil ? Color.secondary : MoaLiteTheme.amber)
+                .foregroundStyle(model.usageAlertThreshold == nil ? Color.secondary : MoaTheme.amber)
                 .frame(width: 22)
             VStack(alignment: .leading, spacing: 3) {
                 Text(MoaL10n.text("Daily Usage Alert"))
@@ -396,8 +396,8 @@ private struct MoaUsageInsightsView: View {
             .buttonStyle(MoaGlassButtonStyle(tone: .neutral, minWidth: 92, height: 30))
         }
         .padding(12)
-        .background(MoaLiteTheme.elevatedSurface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(MoaLiteTheme.subtleBorder, lineWidth: 1))
+        .background(MoaTheme.elevatedSurface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(MoaTheme.subtleBorder, lineWidth: 1))
     }
 
     private func metric(title: String, value: String) -> some View {
@@ -411,8 +411,8 @@ private struct MoaUsageInsightsView: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(MoaLiteTheme.elevatedSurface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(MoaLiteTheme.subtleBorder, lineWidth: 1))
+        .background(MoaTheme.elevatedSurface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(MoaTheme.subtleBorder, lineWidth: 1))
     }
 
     private var table: some View {
@@ -438,13 +438,13 @@ private struct MoaUsageInsightsView: View {
                 HStack(spacing: 6) {
                     Text(row.pricingModel)
                     if row.usesFallbackPricing {
-                        MoaStatusTag(title: MoaL10n.text("Fallback"), tint: MoaLiteTheme.amber)
+                        MoaStatusTag(title: MoaL10n.text("Fallback"), tint: MoaTheme.amber)
                     }
                 }
             }
         }
         .frame(minHeight: 280)
-        .background(MoaLiteTheme.elevatedSurface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .background(MoaTheme.elevatedSurface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
     private var fallbackPanel: some View {
@@ -484,8 +484,8 @@ private struct MoaUsageInsightsView: View {
             }
         }
         .padding(14)
-        .background(MoaLiteTheme.elevatedSurface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(MoaLiteTheme.subtleBorder, lineWidth: 1))
+        .background(MoaTheme.elevatedSurface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(MoaTheme.subtleBorder, lineWidth: 1))
     }
 
     private static func compactTokens(_ value: Int) -> String {
@@ -580,7 +580,7 @@ private struct CustomPriceFormView: View {
 
             Text(statusText.isEmpty ? " " : statusText)
                 .font(.system(size: 12))
-                .foregroundStyle(MoaLiteTheme.coral)
+                .foregroundStyle(MoaTheme.coral)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(minHeight: 16, alignment: .leading)
 

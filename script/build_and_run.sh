@@ -2,8 +2,8 @@
 set -euo pipefail
 
 MODE="${1:-run}"
-APP_NAME="Moa-Lite"
-BUNDLE_ID="com.moarliu.moa-lite"
+APP_NAME="Moa"
+BUNDLE_ID="com.moarliu.moa"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_BUNDLE="$ROOT_DIR/$APP_NAME.app"

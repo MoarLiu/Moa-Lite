@@ -91,7 +91,7 @@ final class ClaudeDesktopProfileController {
     }
 
     private static let profileID = "00000000-0000-4000-8000-000000157211"
-    private static let profileName = "Moa-Lite"
+    private static let profileName = "Moa"
     private static let configFileName = "claude_desktop_config.json"
 
     private let fileManager = FileManager.default
@@ -483,7 +483,7 @@ final class ClaudeDesktopProfileController {
                 try restoreSnapshots(snapshots)
             } catch {
                 throw NSError(
-                    domain: "Moa-Lite",
+                    domain: "Moa",
                     code: 500,
                     userInfo: [NSLocalizedDescriptionKey: MoaL10n.format("Claude Desktop config write failed, and rollback also failed: %@", error.localizedDescription)]
                 )

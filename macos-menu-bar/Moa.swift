@@ -66,15 +66,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     let importClaudeDesktopProviderItem = NSMenuItem(title: MoaL10n.text("Import Provider"), action: #selector(importClaudeDesktopProfilesAction), keyEquivalent: "")
     let exportClaudeDesktopProviderItem = NSMenuItem(title: MoaL10n.text("Export Provider"), action: #selector(exportClaudeDesktopProfilesAction), keyEquivalent: "")
 
-    let moaDataItem = NSMenuItem(title: MoaL10n.text("Moa-Lite Data"), action: nil, keyEquivalent: "")
-    let moaDataMenu = NSMenu(title: MoaL10n.text("Moa-Lite Data"))
+    let moaDataItem = NSMenuItem(title: MoaL10n.text("Moa Data"), action: nil, keyEquivalent: "")
+    let moaDataMenu = NSMenu(title: MoaL10n.text("Moa Data"))
     let exportDataPackageItem = NSMenuItem(title: MoaL10n.text("Export Data Package"), action: #selector(exportDataPackageAction), keyEquivalent: "")
     let importDataPackageItem = NSMenuItem(title: MoaL10n.text("Import Data Package"), action: #selector(importDataPackageAction), keyEquivalent: "")
     let exportDiagnosticPackageItem = NSMenuItem(title: MoaL10n.text("Export Diagnostic Package"), action: #selector(exportDiagnosticPackageAction), keyEquivalent: "")
     let toggleICloudStorageItem = NSMenuItem(title: MoaL10n.text("Store Data in iCloud"), action: #selector(toggleICloudStorageAction), keyEquivalent: "")
-    let openMoaDataFolderItem = NSMenuItem(title: MoaL10n.text("Open Moa-Lite Data Folder"), action: #selector(openMoaDataFolderAction), keyEquivalent: "")
+    let openMoaDataFolderItem = NSMenuItem(title: MoaL10n.text("Open Moa Data Folder"), action: #selector(openMoaDataFolderAction), keyEquivalent: "")
     let openICloudDataFolderItem = NSMenuItem(title: MoaL10n.text("Open iCloud Data Folder"), action: #selector(openICloudDataFolderAction), keyEquivalent: "")
-    let versionItem = NSMenuItem(title: "Moa-Lite", action: nil, keyEquivalent: "")
+    let versionItem = NSMenuItem(title: "Moa", action: nil, keyEquivalent: "")
 
     var providerBridgeLastHealthCheckAt: Date?
     var providerBridgeLastErrorSummary = ""
@@ -106,10 +106,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func repairLegacyICloudDataSplitIfNeeded() {
         do {
             if try dataPackageController.repairLegacyICloudDataSplitIfNeeded() {
-                NSLog("Moa-Lite repaired missing files from legacy iCloud data root")
+                NSLog("Moa repaired missing files from legacy iCloud data root")
             }
         } catch {
-            NSLog("Moa-Lite legacy iCloud data repair failed: \(error.localizedDescription)")
+            NSLog("Moa legacy iCloud data repair failed: \(error.localizedDescription)")
         }
     }
 
@@ -125,7 +125,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let appMenu = NSMenu()
         appMenu.addItem(NSMenuItem(title: MoaL10n.text("Close Window"), action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w"))
         appMenu.addItem(NSMenuItem.separator())
-        appMenu.addItem(NSMenuItem(title: MoaL10n.text("Quit Moa-Lite"), action: #selector(quitAction), keyEquivalent: "q"))
+        appMenu.addItem(NSMenuItem(title: MoaL10n.text("Quit Moa"), action: #selector(quitAction), keyEquivalent: "q"))
         appMenuItem.submenu = appMenu
         mainMenu.addItem(appMenuItem)
 
@@ -145,7 +145,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if let button = statusItem.button {
             button.image = Self.makeMenuBarIcon()
             button.imageScaling = .scaleProportionallyDown
-            button.toolTip = MoaL10n.text("Moa-Lite - Codex, Claude, ZCode, Provider Bridge")
+            button.toolTip = MoaL10n.text("Moa - Codex, Claude, ZCode, Provider Bridge")
         }
         statusItem.menu = menu
     }
@@ -155,14 +155,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
 
         guard let version, !version.isEmpty else {
-            return "Moa-Lite"
+            return "Moa"
         }
 
         if let build, !build.isEmpty {
-            return "Moa-Lite \(version) (\(build))"
+            return "Moa \(version) (\(build))"
         }
 
-        return "Moa-Lite \(version)"
+        return "Moa \(version)"
     }
 
     static func statusTitle(_ key: String, _ arguments: CVarArg...) -> String {
@@ -206,7 +206,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
            let image = NSImage(contentsOf: url) {
             image.size = NSSize(width: 19, height: 19)
             image.isTemplate = true
-            image.accessibilityDescription = "Moa-Lite"
+            image.accessibilityDescription = "Moa"
             return image
         }
 
@@ -233,7 +233,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         image.unlockFocus()
         image.isTemplate = false
         image.size = NSSize(width: 19, height: 19)
-        image.accessibilityDescription = "Moa-Lite"
+        image.accessibilityDescription = "Moa"
         return image
     }
 

@@ -25,18 +25,20 @@ private func expectClose(_ actual: Double, _ expected: Double, _ message: String
 
 private func temporaryHome() throws -> URL {
     let root = FileManager.default.temporaryDirectory
-        .appendingPathComponent("moa-lite-tests-\(UUID().uuidString)", isDirectory: true)
+        .appendingPathComponent("moa-tests-\(UUID().uuidString)", isDirectory: true)
     try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
     return root
 }
 
 @main
-private enum MoaLiteCoreTests {
+private enum MoaCoreTests {
     static func main() {
         let tests: [(String, () throws -> Void)] = [
-            ("data root paths are Moa-Lite scoped", testDataRootPaths),
-            ("provider bridge defaults use Moa-Lite port", testProviderBridgeDefaultPort),
-            ("Codex bridge provider IDs use Moa-Lite prefix", testCodexBridgeProviderIDs),
+            ("data root paths are Moa scoped", testDataRootPaths),
+            ("legacy Moa-Lite local data migrates without overwrite", testLegacyMoaLiteLocalDataMigration),
+            ("legacy Moa-Lite iCloud data migrates to Moa", testLegacyMoaLiteICloudDataMigration),
+            ("provider bridge defaults use Moa port", testProviderBridgeDefaultPort),
+            ("Codex bridge provider IDs use Moa prefix", testCodexBridgeProviderIDs),
             ("official restore keeps selected provider identity", testOfficialRestoreKeepsSelectedProviderIdentity),
             ("official restore strips selected direct provider credentials", testOfficialRestoreStripsSelectedDirectProviderCredentials),
             ("official account displays email from auth token", testOfficialAccountDisplaysEmailFromAuthToken),
@@ -72,11 +74,69 @@ private enum MoaLiteCoreTests {
         defer { try? FileManager.default.removeItem(at: home) }
 
         let environment = ["HOME": home.path]
-        try expect(MoaDataRoot.localURL(environment: environment).lastPathComponent == ".moa-lite", "local data root should be ~/.moa-lite")
-        try expect(MoaDataRoot.supportDirectory(environment: environment).lastPathComponent == "Moa-Lite", "Application Support root should be Moa-Lite")
-        try expect(MoaDataRoot.iCloudURL(environment: environment).lastPathComponent == "Moa-Lite", "iCloud folder should be Moa-Lite")
-        try expect(MoaDataRoot.legacyNestedICloudURL(environment: environment).lastPathComponent == ".moa-lite", "legacy nested iCloud folder should be .moa-lite")
-        try expect(MoaDataRoot.currentURL(environment: environment).path.hasSuffix("/.moa-lite"), "default current root should stay local")
+        try expect(MoaDataRoot.localURL(environment: environment).lastPathComponent == ".moa", "local data root should be ~/.moa")
+        try expect(MoaDataRoot.supportDirectory(environment: environment).lastPathComponent == "Moa", "Application Support root should be Moa")
+        try expect(MoaDataRoot.iCloudURL(environment: environment).lastPathComponent == "Moa", "iCloud folder should be Moa")
+        try expect(MoaDataRoot.legacyNestedICloudURL(environment: environment).lastPathComponent == ".moa", "legacy nested iCloud folder should be .moa")
+        try expect(MoaDataRoot.currentURL(environment: environment).path.hasSuffix("/.moa"), "default current root should stay local")
+    }
+
+    private static func testLegacyMoaLiteLocalDataMigration() throws {
+        let home = try temporaryHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+
+        let fileManager = FileManager.default
+        let environment = ["HOME": home.path]
+        let oldLocal = home.appendingPathComponent(".moa", isDirectory: true)
+        let newLocal = MoaDataRoot.localURL(environment: environment)
+        let legacyLocal = home.appendingPathComponent(".moa-lite", isDirectory: true)
+        try fileManager.createDirectory(at: legacyLocal, withIntermediateDirectories: true)
+        try "legacy".write(to: legacyLocal.appendingPathComponent("profiles.json"), atomically: true, encoding: .utf8)
+
+        let migrated = try MoaDataRoot.migrateLegacyMoaLiteRootsIfNeeded(environment: environment)
+        try expect(migrated, "legacy local data should migrate")
+        let migratedProfileData = try String(contentsOf: newLocal.appendingPathComponent("profiles.json"), encoding: .utf8)
+        try expect(migratedProfileData == "legacy", "legacy profile data should copy to ~/.moa")
+        try expect(fileManager.fileExists(atPath: legacyLocal.path), "migration should leave ~/.moa-lite in place")
+
+        try fileManager.removeItem(at: newLocal)
+        try fileManager.createDirectory(at: oldLocal, withIntermediateDirectories: true)
+        try "existing".write(to: oldLocal.appendingPathComponent("profiles.json"), atomically: true, encoding: .utf8)
+        try "changed-legacy".write(to: legacyLocal.appendingPathComponent("profiles.json"), atomically: true, encoding: .utf8)
+
+        _ = try MoaDataRoot.migrateLegacyMoaLiteRootsIfNeeded(environment: environment)
+        let existingProfileData = try String(contentsOf: newLocal.appendingPathComponent("profiles.json"), encoding: .utf8)
+        try expect(existingProfileData == "existing", "migration should not overwrite existing ~/.moa data")
+    }
+
+    private static func testLegacyMoaLiteICloudDataMigration() throws {
+        let home = try temporaryHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+
+        let fileManager = FileManager.default
+        let environment = ["HOME": home.path]
+        let oldSupport = home
+            .appendingPathComponent("Library", isDirectory: true)
+            .appendingPathComponent("Application Support", isDirectory: true)
+            .appendingPathComponent("Moa-Lite", isDirectory: true)
+        let oldICloud = home
+            .appendingPathComponent("Library", isDirectory: true)
+            .appendingPathComponent("Mobile Documents", isDirectory: true)
+            .appendingPathComponent("com~apple~CloudDocs", isDirectory: true)
+            .appendingPathComponent("Moa-Lite", isDirectory: true)
+        try fileManager.createDirectory(at: oldSupport, withIntermediateDirectories: true)
+        try fileManager.createDirectory(at: oldICloud, withIntermediateDirectories: true)
+        try Data().write(to: oldSupport.appendingPathComponent("icloud-data-root-enabled"))
+        try "icloud".write(to: oldICloud.appendingPathComponent("profiles.json"), atomically: true, encoding: .utf8)
+
+        let migrated = try MoaDataRoot.migrateLegacyMoaLiteRootsIfNeeded(environment: environment)
+        let newSupport = MoaDataRoot.supportDirectory(environment: environment)
+        let newICloud = MoaDataRoot.iCloudURL(environment: environment)
+        try expect(migrated, "legacy iCloud data should migrate")
+        try expect(fileManager.fileExists(atPath: newSupport.appendingPathComponent("icloud-data-root-enabled").path), "iCloud state should migrate to Moa support directory")
+        let migratedICloudProfileData = try String(contentsOf: newICloud.appendingPathComponent("profiles.json"), encoding: .utf8)
+        try expect(migratedICloudProfileData == "icloud", "legacy iCloud data should copy to iCloud Drive/Moa")
+        try expect(MoaDataRoot.currentURL(environment: environment).lastPathComponent == "Moa", "current root should use migrated Moa iCloud folder")
     }
 
     private static func testProviderBridgeDefaultPort() throws {
@@ -90,9 +150,9 @@ private enum MoaLiteCoreTests {
             bridgeMode: .localBridge
         )
 
-        try expect(MoaProviderBridgeDefaults.defaultPort == 19361, "Moa-Lite provider bridge should avoid Moa's original 19360 port")
-        try expect(profile.resolvedBridgePort == 19361, "local bridge profiles should inherit the Moa-Lite port")
-        try expect(profile.codexBaseURL == "http://127.0.0.1:19361/v1", "Codex base URL should use the Moa-Lite bridge port")
+        try expect(MoaProviderBridgeDefaults.defaultPort == 19360, "Moa provider bridge should use the Moa port")
+        try expect(profile.resolvedBridgePort == 19360, "local bridge profiles should inherit the Moa port")
+        try expect(profile.codexBaseURL == "http://127.0.0.1:19360/v1", "Codex base URL should use the Moa bridge port")
     }
 
     private static func testCodexBridgeProviderIDs() throws {
@@ -122,37 +182,29 @@ private enum MoaLiteCoreTests {
             bridgeMode: .localBridge
         )
 
-        try expect(ConfigProfileController.providerBridgeModeID == "moa-lite-provider-bridge", "provider bridge mode ID should be Moa-Lite scoped")
-        try expect(controller.providerID(for: deepSeek, in: "") == "moa-lite-deepseek", "DeepSeek bridge provider ID should use Moa-Lite prefix")
-        try expect(controller.providerID(for: custom, in: "") == "moa-lite-kimi_chat", "custom bridge provider ID should use Moa-Lite prefix")
+        try expect(ConfigProfileController.providerBridgeModeID == "moa-provider-bridge", "provider bridge mode ID should be Moa scoped")
+        try expect(controller.providerID(for: deepSeek, in: "") == "moa-deepseek", "DeepSeek bridge provider ID should use Moa prefix")
+        try expect(controller.providerID(for: custom, in: "") == "moa-kimi_chat", "custom bridge provider ID should use Moa prefix")
     }
 
     private static func testOfficialRestoreKeepsSelectedProviderIdentity() throws {
         let config = """
         model = "deepseek-chat"
-        model_provider = "moa-lite-deepseek"
+        model_provider = "moa-deepseek"
 
         [model_providers.moa-deepseek]
-        name = "Original Moa DeepSeek"
+        name = "Moa DeepSeek"
         base_url = "http://127.0.0.1:19360/v1"
-        experimental_bearer_token = "original-token"
-        wire_api = "responses"
-
-        [model_providers.moa-lite-deepseek]
-        name = "Moa-Lite DeepSeek"
-        base_url = "http://127.0.0.1:19361/v1"
-        experimental_bearer_token = "lite-token"
+        experimental_bearer_token = "moa-token"
         wire_api = "responses"
         """
 
         let restored = MoaCodexConfigEditor.restoringOfficialMode(from: config)
-        try expect(restored.contains("[model_providers.moa-deepseek]"), "Moa-Lite should not remove original Moa provider tables")
-        try expect(restored.contains("original-token"), "original Moa provider secrets should not be touched by Moa-Lite official restore")
-        try expect(restored.contains(#"model_provider = "moa-lite-deepseek""#), "official restore should preserve root provider selection")
-        try expect(restored.contains("[model_providers.moa-lite-deepseek]"), "selected provider table should stay available for session continuity")
-        try expect(restored.contains(#"name = "Moa-Lite DeepSeek""#), "selected provider display name should be preserved")
-        try expect(!restored.contains("http://127.0.0.1:19361/v1"), "selected provider base URL should be removed")
-        try expect(!restored.contains("lite-token"), "selected provider token should be removed")
+        try expect(restored.contains(#"model_provider = "moa-deepseek""#), "official restore should preserve root provider selection")
+        try expect(restored.contains("[model_providers.moa-deepseek]"), "selected provider table should stay available for session continuity")
+        try expect(restored.contains(#"name = "Moa DeepSeek""#), "selected provider display name should be preserved")
+        try expect(!restored.contains("http://127.0.0.1:19360/v1"), "selected provider base URL should be removed")
+        try expect(!restored.contains("moa-token"), "selected provider token should be removed")
     }
 
     private static func testOfficialRestoreStripsSelectedDirectProviderCredentials() throws {
@@ -437,8 +489,8 @@ private enum MoaLiteCoreTests {
 
     private static func testLiteLLMPresetName() throws {
         let preset = MoaProviderPresets.responsesGateways.first { $0.id == "litellm-responses-gateway" }
-        try expect(preset?.model == "moa-lite-codex", "LiteLLM sample model should be Moa-Lite scoped")
-        try expect(preset?.models == ["moa-lite-codex"], "LiteLLM sample models should be Moa-Lite scoped")
+        try expect(preset?.model == "moa-codex", "LiteLLM sample model should be Moa scoped")
+        try expect(preset?.models == ["moa-codex"], "LiteLLM sample models should be Moa scoped")
     }
 
     private static func testZCodePricing() throws {

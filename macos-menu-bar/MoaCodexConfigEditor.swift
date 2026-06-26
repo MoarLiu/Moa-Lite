@@ -98,7 +98,7 @@ enum MoaCodexConfigEditor {
     }
 
     private static func isMoaManagedProviderTable(_ tableName: String) -> Bool {
-        tableName.hasPrefix("model_providers.moa-lite-")
+        tableName.hasPrefix("model_providers.moa-")
     }
 
     private static func isUnselectedMoaManagedProviderTable(_ tableName: String, selectedProviderID: String?) -> Bool {

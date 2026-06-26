@@ -261,7 +261,7 @@ private struct ProviderBridgeProfileFormView: View {
                     .moaModalFieldChrome()
                 Text(MoaProviderBaseURLPolicy.visibleGuidance)
                     .font(.system(size: 12))
-                    .foregroundStyle(MoaLiteTheme.amber)
+                    .foregroundStyle(MoaTheme.amber)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
@@ -282,7 +282,7 @@ private struct ProviderBridgeProfileFormView: View {
                     .frame(minWidth: 88)
                     .controlSize(.regular)
                     .buttonStyle(.borderedProminent)
-                    .tint(MoaLiteTheme.tint)
+                    .tint(MoaTheme.tint)
                     .keyboardShortcut(.defaultAction)
             }
         }
@@ -378,7 +378,7 @@ private struct CodexOfficialAccountNameFormView: View {
                     .frame(minWidth: 88)
                     .controlSize(.regular)
                     .buttonStyle(.borderedProminent)
-                    .tint(MoaLiteTheme.tint)
+                    .tint(MoaTheme.tint)
                     .keyboardShortcut(.defaultAction)
             }
         }
@@ -488,7 +488,7 @@ private struct CodexProfileFormView: View {
                     .moaModalFieldChrome()
                 Text(MoaProviderBaseURLPolicy.visibleGuidance)
                     .font(.system(size: 12))
-                    .foregroundStyle(MoaLiteTheme.amber)
+                    .foregroundStyle(MoaTheme.amber)
                     .fixedSize(horizontal: false, vertical: true)
                 Text(MoaL10n.text("Use an endpoint compatible with OpenAI Responses format."))
                     .font(.system(size: 12))
@@ -518,7 +518,7 @@ private struct CodexProfileFormView: View {
                     .frame(minWidth: 88)
                     .controlSize(.regular)
                     .buttonStyle(.borderedProminent)
-                    .tint(MoaLiteTheme.tint)
+                    .tint(MoaTheme.tint)
                     .keyboardShortcut(.defaultAction)
                     .disabled(isTesting)
             }
@@ -675,7 +675,7 @@ private struct ClaudeProviderFormView: View {
                     .moaModalFieldChrome()
                 Text(MoaProviderBaseURLPolicy.visibleGuidance)
                     .font(.system(size: 12))
-                    .foregroundStyle(MoaLiteTheme.amber)
+                    .foregroundStyle(MoaTheme.amber)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
@@ -711,7 +711,7 @@ private struct ClaudeProviderFormView: View {
                     .frame(minWidth: 88)
                     .controlSize(.regular)
                     .buttonStyle(.borderedProminent)
-                    .tint(MoaLiteTheme.tint)
+                    .tint(MoaTheme.tint)
                     .keyboardShortcut(.defaultAction)
                     .disabled(isTesting)
             }

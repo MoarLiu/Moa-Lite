@@ -72,11 +72,11 @@ enum MoaFormStatusTone {
         case .neutral:
             return .secondary
         case .success:
-            return MoaLiteTheme.leaf
+            return MoaTheme.leaf
         case .warning:
-            return MoaLiteTheme.amber
+            return MoaTheme.amber
         case .error:
-            return MoaLiteTheme.coral
+            return MoaTheme.coral
         }
     }
 }
@@ -84,7 +84,7 @@ enum MoaFormStatusTone {
 /// 弹窗顶部的图标 + 标题 + 说明,沿用浮窗 Alert 的视觉。
 struct MoaModalHeader: View {
     var icon: String
-    var tint: Color = MoaLiteTheme.tint
+    var tint: Color = MoaTheme.tint
     var title: String
     var message: String?
 
@@ -146,7 +146,7 @@ extension View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .stroke(MoaLiteTheme.tint.opacity(0.22), lineWidth: 1)
+                    .stroke(MoaTheme.tint.opacity(0.22), lineWidth: 1)
             )
     }
 

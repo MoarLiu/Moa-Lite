@@ -7,7 +7,7 @@ source "$ROOT/scripts/sources.env"
 # shellcheck source=version.env
 source "$ROOT/scripts/version.env"
 BUILD_DIR="$ROOT/build/tests"
-EXECUTABLE="$BUILD_DIR/moa-lite-core-tests"
+EXECUTABLE="$BUILD_DIR/moa-core-tests"
 
 MOA_TEST_ABS_SOURCES=()
 for source in "${MOA_TEST_SUPPORT_SOURCES[@]}"; do

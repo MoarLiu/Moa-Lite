@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-IDENTITY_NAME="${MOA_LITE_CODE_SIGN_IDENTITY:-Moa-Lite Local Development Code Signing}"
+IDENTITY_NAME="${MOA_CODE_SIGN_IDENTITY:-Moa Local Development Code Signing}"
 KEYCHAIN="${MOA_CODE_SIGN_KEYCHAIN:-$(/usr/bin/security default-keychain | sed -E 's/^[[:space:]]*"//; s/"[[:space:]]*$//')}"
 CERT_DAYS="${MOA_CODE_SIGN_CERT_DAYS:-3650}"
 
@@ -22,7 +22,7 @@ P12_PASSWORD="$(/usr/bin/openssl rand -hex 24)"
   -x509 \
   -days "$CERT_DAYS" \
   -out "$TMP_DIR/cert.pem" \
-  -subj "/CN=$IDENTITY_NAME/O=Moa-Lite Local Development/OU=Local Development" \
+  -subj "/CN=$IDENTITY_NAME/O=Moa Local Development/OU=Local Development" \
   -addext "keyUsage=critical,digitalSignature" \
   -addext "extendedKeyUsage=critical,codeSigning" \
   >/dev/null 2>&1

@@ -142,10 +142,10 @@ enum MoaProviderPresets {
             name: "LiteLLM Responses Gateway",
             baseURL: "http://127.0.0.1:4000/v1",
             upstreamBaseURL: nil,
-            model: "moa-lite-codex",
-            testModel: "moa-lite-codex",
+            model: "moa-codex",
+            testModel: "moa-codex",
             models: [
-                "moa-lite-codex"
+                "moa-codex"
             ],
             providerKind: .custom,
             clientTarget: .codex,

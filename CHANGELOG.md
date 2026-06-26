@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.3 - 2026-06-26
+
+- Renamed the app, bundle, package, data roots, Provider Bridge identifiers, release artifacts, and documentation from Moa-Lite to Moa.
+- Updated the default Provider Bridge port to `19360` for the primary Moa identity.
+- Renamed the GitHub repository to `MoarLiu/Moa`.
+
 ## 1.1.2 - 2026-06-26
 
 - Show saved Codex official accounts with their email address, including renamed accounts such as `Plus(email@example.com)`.
@@ -22,9 +28,9 @@
 
 ## 1.0.0
 
-- Created Moa-Lite from the Moa codebase as an independent macOS menu bar app.
+- Created Moa as an independent macOS menu bar app.
 - Kept Codex, Claude Desktop, Provider Bridge, local usage insights, data package import/export, diagnostics, and iCloud data-root switching.
 - Removed Companion, desktop pet, AI quick actions, reminders, journal, Pomodoro, MCP helper, workflow runner, asset upload, updater, dashboard, skins, and sounds.
-- Restored trimmed English and Simplified Chinese localization bundles for the Moa-Lite menu and dialogs.
-- Isolated app identity and data from Moa: `Moa-Lite.app`, `com.moarliu.moa-lite`, `~/.moa-lite`, `iCloud Drive/Moa-Lite`, `moa-lite-*` Codex provider IDs, and Provider Bridge port `19361`.
-- Replaced legacy Moa integration tests with Moa-Lite focused core tests.
+- Restored trimmed English and Simplified Chinese localization bundles for the Moa menu and dialogs.
+- Standardized the app identity and data paths as Moa: `Moa.app`, `com.moarliu.moa`, `~/.moa`, `iCloud Drive/Moa`, `moa-*` Codex provider IDs, and Provider Bridge port `19360`.
+- Replaced legacy Moa integration tests with Moa focused core tests.

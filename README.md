@@ -1,6 +1,6 @@
-# Moa-Lite
+# Moa
 
-Moa-Lite is the trimmed macOS menu bar edition of Moa for Codex Desktop, Claude Desktop, and local Provider Bridge workflows.
+Moa is a focused macOS menu bar app for Codex Desktop, Claude Desktop, and local Provider Bridge workflows.
 
 It intentionally excludes the original Moa Companion surface: no desktop pet, AI quick actions, reminders, journal, Pomodoro, MCP helper, workflow runner, asset upload, updater, dashboard, skins, or sounds.
 
@@ -10,40 +10,40 @@ It intentionally excludes the original Moa Companion surface: no desktop pet, AI
 - Provider Bridge: local loopback Responses bridge for Chat Completions upstreams, with DeepSeek and common gateway presets.
 - Claude Desktop profiles: write Claude Desktop 3P gateway profiles and copy Claude Code environment snippets.
 - Usage insights: local Codex and Claude usage summaries with configurable daily alerts.
-- Moa-Lite Data: export/import data packages, export redacted diagnostics, and optionally switch the active data root to iCloud Drive.
+- Moa Data: export/import data packages, export redacted diagnostics, and optionally switch the active data root to iCloud Drive.
 
-## Coexistence With Moa
+## App Identity
 
-Moa-Lite is configured so it can be installed beside the original Moa app:
+Moa uses the primary Moa app identity throughout the bundle, data roots, provider IDs, and release artifacts:
 
-- App bundle: `Moa-Lite.app`
-- Bundle identifier: `com.moarliu.moa-lite`
-- SwiftPM executable product: `Moa-Lite`
-- Local data root: `~/.moa-lite`
-- Application Support root: `~/Library/Application Support/Moa-Lite`
-- iCloud data root: `iCloud Drive/Moa-Lite`
-- Data package root: `MoaLiteDataPackage/.moa-lite`
-- Provider Bridge default port: `19361`
-- Codex managed provider IDs: `moa-lite-*`
-- Claude Desktop 3P config-library profile: `Moa-Lite`
+- App bundle: `Moa.app`
+- Bundle identifier: `com.moarliu.moa`
+- SwiftPM executable product: `Moa`
+- Local data root: `~/.moa`
+- Application Support root: `~/Library/Application Support/Moa`
+- iCloud data root: `iCloud Drive/Moa`
+- Data package root: `MoaDataPackage/.moa`
+- Provider Bridge default port: `19360`
+- Codex managed provider IDs: `moa-*`
+- Claude Desktop 3P config-library profile: `Moa`
 
-Moa-Lite still edits the real Codex and Claude Desktop configuration files when you ask it to switch profiles. Its own profile databases, bridge tokens, package manifests, iCloud state, and diagnostics are stored separately from Moa.
+Moa still edits the real Codex and Claude Desktop configuration files when you ask it to switch profiles. Its own profile databases, bridge tokens, package manifests, iCloud state, and diagnostics are stored under the Moa data root.
 
 ## Data Files
 
-Moa-Lite stores its local profile and recovery data under:
+Moa stores its local profile and recovery data under:
 
-- `~/.moa-lite/config.toml`
-- `~/.moa-lite/auth.json`
-- `~/.moa-lite/codex_official_accounts.json`
-- `~/.moa-lite/codex-auth/accounts/*.json`
-- `~/.moa-lite/profiles.json`
-- `~/.moa-lite/provider_bridge_profiles.json`
-- `~/.moa-lite/claude_desktop_profiles.json`
-- `~/.moa-lite/usage-pricing-overrides.json`
-- `~/.moa-lite/backups`
+- `~/.moa/config.toml`
+- `~/.moa/auth.json`
+- `~/.moa/codex_official_accounts.json`
+- `~/.moa/codex-auth/accounts/*.json`
+- `~/.moa/profiles.json`
+- `~/.moa/provider_bridge_profiles.json`
+- `~/.moa/claude_desktop_profiles.json`
+- `~/.moa/usage-pricing-overrides.json`
+- `~/.moa/backups`
 
-When iCloud storage is enabled, Moa-Lite reads and writes `iCloud Drive/Moa-Lite` directly instead of `~/.moa-lite`.
+When iCloud storage is enabled, Moa reads and writes `iCloud Drive/Moa` directly instead of `~/.moa`.
 
 ## Build
 
@@ -53,7 +53,7 @@ swift build
 CODE_SIGN_IDENTITY=- ./scripts/build-menu-bar-app.sh
 ```
 
-The app bundle is written to `Moa-Lite.app`.
+The app bundle is written to `Moa.app`.
 
 To create a DMG:
 
@@ -61,7 +61,7 @@ To create a DMG:
 CODE_SIGN_IDENTITY=- ./scripts/package-dmg.sh
 ```
 
-The DMG is written to `dist/Moa-Lite-<version>-macos-<arch>.dmg` with a matching SHA-256 file.
+The DMG is written to `dist/Moa-<version>-macos-<arch>.dmg` with a matching SHA-256 file.
 
 ## Local Run Button
 
@@ -70,12 +70,12 @@ Codex app run-button support is wired through:
 - `script/build_and_run.sh`
 - `.codex/environments/environment.toml`
 
-The script builds `Moa-Lite.app`, stops any currently running Moa-Lite process, and launches the fresh bundle.
+The script builds `Moa.app`, stops any currently running Moa process, and launches the fresh bundle.
 
 ## Security Notes
 
 - Provider API keys and bridge tokens stay local.
 - The Provider Bridge listens on `127.0.0.1` only.
 - Diagnostic packages redact auth, key, and token fields.
-- Packaging scripts refuse to include `.moa`, `.moa-lite`, `.codex`, auth/config/profile files, environment files, and signing keys.
-- Moa-Lite does not bundle `MoaMCP` and does not expose local workflow tools.
+- Packaging scripts refuse to include `.moa`, `.codex`, auth/config/profile files, environment files, and signing keys.
+- Moa does not bundle `MoaMCP` and does not expose local workflow tools.

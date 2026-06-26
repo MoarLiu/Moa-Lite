@@ -22,9 +22,9 @@ final class MoaUsageCoordinator {
     private let claudeRefreshView = CodexUsageRefreshMenuView()
     private let zcodeSummaryView = CodexUsageSummaryMenuView()
     private let zcodeRefreshView = CodexUsageRefreshMenuView()
-    private let codexQueue = DispatchQueue(label: "com.moarliu.moa-lite.codex-usage", qos: .utility)
-    private let claudeQueue = DispatchQueue(label: "com.moarliu.moa-lite.claude-usage", qos: .utility)
-    private let zcodeQueue = DispatchQueue(label: "com.moarliu.moa-lite.zcode-usage", qos: .utility)
+    private let codexQueue = DispatchQueue(label: "com.moarliu.moa.codex-usage", qos: .utility)
+    private let claudeQueue = DispatchQueue(label: "com.moarliu.moa.claude-usage", qos: .utility)
+    private let zcodeQueue = DispatchQueue(label: "com.moarliu.moa.zcode-usage", qos: .utility)
 
     private var codexTimer: Timer?
     private var claudeTimer: Timer?

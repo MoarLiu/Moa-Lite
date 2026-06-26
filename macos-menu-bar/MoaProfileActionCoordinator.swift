@@ -191,7 +191,7 @@ final class MoaProfileActionCoordinator {
     }
 
     func exportCodexProfilesAction() {
-        exportProfiles(groupName: "Codex", suggestedFileName: "moa-lite-codex-profiles.json") { includeAPIKeys in
+        exportProfiles(groupName: "Codex", suggestedFileName: "moa-codex-profiles.json") { includeAPIKeys in
             try self.profileController.exportProfiles(includingAPIKeys: includeAPIKeys)
         }
     }
@@ -301,7 +301,7 @@ final class MoaProfileActionCoordinator {
     }
 
     func exportClaudeDesktopProfilesAction() {
-        exportProfiles(groupName: "Claude Desktop", suggestedFileName: "moa-lite-claude-desktop-profiles.json") { includeAPIKeys in
+        exportProfiles(groupName: "Claude Desktop", suggestedFileName: "moa-claude-desktop-profiles.json") { includeAPIKeys in
             try self.claudeDesktopProfileController.exportProfiles(includingAPIKeys: includeAPIKeys)
         }
     }

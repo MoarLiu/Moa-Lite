@@ -4,6 +4,9 @@ import Foundation
 enum MoaDataRoot {
     private static let iCloudStorageStateFileName = "icloud-data-root-enabled"
     private static let legacyICloudSyncStateFileName = "icloud-sync-enabled"
+    private static let legacyMoaLiteDirectoryName = ".moa-lite"
+    private static let legacyMoaLiteSupportDirectoryName = "Moa-Lite"
+    private static let legacyMoaLiteICloudDirectoryName = "Moa-Lite"
 
     /// 数据根切换（导入数据包 / 切 iCloud / 移回本机）后广播，让能安全 reload 的 store 重新从当前数据根读取。
     static let didChangeNotification = Notification.Name("MoaDataRootDidChange")
@@ -19,7 +22,7 @@ enum MoaDataRoot {
 
     static func localURL(environment: [String: String] = ProcessInfo.processInfo.environment) -> URL {
         homeDirectory(environment: environment)
-            .appendingPathComponent(".moa-lite", isDirectory: true)
+            .appendingPathComponent(".moa", isDirectory: true)
             .standardizedFileURL
     }
 
@@ -27,7 +30,7 @@ enum MoaDataRoot {
         homeDirectory(environment: environment)
             .appendingPathComponent("Library", isDirectory: true)
             .appendingPathComponent("Application Support", isDirectory: true)
-            .appendingPathComponent("Moa-Lite", isDirectory: true)
+            .appendingPathComponent("Moa", isDirectory: true)
             .standardizedFileURL
     }
 
@@ -49,13 +52,13 @@ enum MoaDataRoot {
 
     static func iCloudURL(environment: [String: String] = ProcessInfo.processInfo.environment) -> URL {
         iCloudDriveRoot(environment: environment)
-            .appendingPathComponent("Moa-Lite", isDirectory: true)
+            .appendingPathComponent("Moa", isDirectory: true)
             .standardizedFileURL
     }
 
     static func legacyNestedICloudURL(environment: [String: String] = ProcessInfo.processInfo.environment) -> URL {
         iCloudURL(environment: environment)
-            .appendingPathComponent(".moa-lite", isDirectory: true)
+            .appendingPathComponent(".moa", isDirectory: true)
             .standardizedFileURL
     }
 
@@ -105,6 +108,142 @@ enum MoaDataRoot {
             return url
         }
     }
+
+    @discardableResult
+    static func migrateLegacyMoaLiteRootsIfNeeded(
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        fileManager: FileManager = .default
+    ) throws -> Bool {
+        var migrated = false
+        let oldSupport = legacyMoaLiteSupportDirectory(environment: environment)
+        let newSupport = supportDirectory(environment: environment)
+        migrated = try copyDirectoryIfDestinationMissing(from: oldSupport, to: newSupport, fileManager: fileManager) || migrated
+
+        let oldLocal = legacyMoaLiteLocalURL(environment: environment)
+        let newLocal = localURL(environment: environment)
+        let oldICloud = legacyMoaLiteICloudURL(environment: environment)
+        let newICloud = iCloudURL(environment: environment)
+        let oldNestedICloud = oldICloud.appendingPathComponent(legacyMoaLiteDirectoryName, isDirectory: true)
+        let oldLocalSymlinkDestination = symlinkDestination(of: oldLocal, fileManager: fileManager)
+        let oldICloudEnabled = oldMoaLiteICloudStateExists(environment: environment, fileManager: fileManager)
+            || oldLocalSymlinkDestination != nil
+
+        if oldICloudEnabled {
+            if !fileManager.fileExists(atPath: newSupport.path) {
+                try fileManager.createDirectory(at: newSupport, withIntermediateDirectories: true)
+                migrated = true
+            }
+            let stateURL = iCloudStorageStateURL(environment: environment)
+            if !fileManager.fileExists(atPath: stateURL.path) {
+                try Data().write(to: stateURL, options: .atomic)
+                migrated = true
+            }
+
+            if !fileManager.fileExists(atPath: newICloud.path) {
+                let source = firstExistingDirectory(
+                    [oldICloud, oldNestedICloud, oldLocalSymlinkDestination, oldLocal],
+                    fileManager: fileManager
+                )
+                if let source {
+                    try fileManager.createDirectory(at: newICloud.deletingLastPathComponent(), withIntermediateDirectories: true)
+                    try fileManager.copyItem(at: source, to: newICloud)
+                    migrated = true
+                }
+            }
+
+            let copiedOldNested = newICloud.appendingPathComponent(legacyMoaLiteDirectoryName, isDirectory: true)
+            if fileManager.fileExists(atPath: copiedOldNested.path) {
+                try copyMissingContents(from: copiedOldNested, to: newICloud, fileManager: fileManager)
+                migrated = true
+            }
+            return migrated
+        }
+
+        if oldLocalSymlinkDestination == nil {
+            migrated = try copyDirectoryIfDestinationMissing(from: oldLocal, to: newLocal, fileManager: fileManager) || migrated
+        }
+        return migrated
+    }
+
+    private static func legacyMoaLiteLocalURL(environment: [String: String]) -> URL {
+        homeDirectory(environment: environment)
+            .appendingPathComponent(legacyMoaLiteDirectoryName, isDirectory: true)
+            .standardizedFileURL
+    }
+
+    private static func legacyMoaLiteSupportDirectory(environment: [String: String]) -> URL {
+        homeDirectory(environment: environment)
+            .appendingPathComponent("Library", isDirectory: true)
+            .appendingPathComponent("Application Support", isDirectory: true)
+            .appendingPathComponent(legacyMoaLiteSupportDirectoryName, isDirectory: true)
+            .standardizedFileURL
+    }
+
+    private static func legacyMoaLiteICloudURL(environment: [String: String]) -> URL {
+        iCloudDriveRoot(environment: environment)
+            .appendingPathComponent(legacyMoaLiteICloudDirectoryName, isDirectory: true)
+            .standardizedFileURL
+    }
+
+    private static func oldMoaLiteICloudStateExists(environment: [String: String], fileManager: FileManager) -> Bool {
+        let support = legacyMoaLiteSupportDirectory(environment: environment)
+        return fileManager.fileExists(atPath: support.appendingPathComponent(iCloudStorageStateFileName).path)
+            || fileManager.fileExists(atPath: support.appendingPathComponent(legacyICloudSyncStateFileName).path)
+    }
+
+    private static func copyDirectoryIfDestinationMissing(from source: URL, to destination: URL, fileManager: FileManager) throws -> Bool {
+        guard firstExistingDirectory([source], fileManager: fileManager) != nil,
+              !fileManager.fileExists(atPath: destination.path)
+        else {
+            return false
+        }
+        try fileManager.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try fileManager.copyItem(at: source, to: destination)
+        return true
+    }
+
+    private static func firstExistingDirectory(_ candidates: [URL?], fileManager: FileManager) -> URL? {
+        for candidate in candidates {
+            guard let candidate else {
+                continue
+            }
+            var isDirectory: ObjCBool = false
+            if fileManager.fileExists(atPath: candidate.path, isDirectory: &isDirectory), isDirectory.boolValue {
+                return candidate
+            }
+        }
+        return nil
+    }
+
+    private static func symlinkDestination(of url: URL, fileManager: FileManager) -> URL? {
+        guard let destination = try? fileManager.destinationOfSymbolicLink(atPath: url.path) else {
+            return nil
+        }
+        return URL(fileURLWithPath: destination, relativeTo: url.deletingLastPathComponent())
+            .standardizedFileURL
+    }
+
+    private static func copyMissingContents(from source: URL, to destination: URL, fileManager: FileManager) throws {
+        guard let enumerator = fileManager.enumerator(at: source, includingPropertiesForKeys: [.isDirectoryKey]) else {
+            return
+        }
+        for case let url as URL in enumerator {
+            let relativePath = String(url.path.dropFirst(source.path.count + 1))
+            let target = destination.appendingPathComponent(relativePath)
+            if fileManager.fileExists(atPath: target.path) {
+                if (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true {
+                    enumerator.skipDescendants()
+                }
+                continue
+            }
+            if (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true {
+                try fileManager.createDirectory(at: target, withIntermediateDirectories: true)
+            } else {
+                try fileManager.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try fileManager.copyItem(at: url, to: target)
+            }
+        }
+    }
 }
 
 struct MoaDataPackageManifest: Codable {
@@ -133,15 +272,15 @@ enum MoaDataPackageError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .moaHomeMissing(let url):
-            return MoaL10n.format("Moa-Lite data folder does not exist: %@", url.path)
+            return MoaL10n.format("Moa data folder does not exist: %@", url.path)
         case .invalidPackage:
-            return MoaL10n.text("The selected zip is not a valid Moa-Lite data package.")
+            return MoaL10n.text("The selected zip is not a valid Moa data package.")
         case .iCloudDriveUnavailable(let url):
             return MoaL10n.format("iCloud Drive is not available at %@. Make sure iCloud Drive is enabled for this Mac.", url.path)
         case .iCloudDataRootConflict(let url):
-            return MoaL10n.format("The iCloud Moa-Lite data path already exists but is not a folder: %@", url.path)
+            return MoaL10n.format("The iCloud Moa data path already exists but is not a folder: %@", url.path)
         case .iCloudAlreadyDisabled:
-            return MoaL10n.text("iCloud storage is not enabled for Moa-Lite data.")
+            return MoaL10n.text("iCloud storage is not enabled for Moa data.")
         case .commandFailed(let message):
             return message
         }
@@ -224,12 +363,12 @@ final class MoaDataPackageController {
         return migrated || materialized
     }
 
-    func defaultDataPackageURL(prefix: String = "Moa-Lite-Data-Backup") -> URL {
+    func defaultDataPackageURL(prefix: String = "Moa-Data-Backup") -> URL {
         downloadsDirectory.appendingPathComponent("\(prefix)-\(Self.timestamp()).zip")
     }
 
     func defaultDiagnosticPackageURL() -> URL {
-        downloadsDirectory.appendingPathComponent("Moa-Lite-Diagnostics-\(Self.timestamp()).zip")
+        downloadsDirectory.appendingPathComponent("Moa-Diagnostics-\(Self.timestamp()).zip")
     }
 
     @discardableResult
@@ -238,11 +377,11 @@ final class MoaDataPackageController {
         defer { operationLock.unlock() }
         try migrateSensitiveStoresBeforeExport()
         let source = try resolvedMoaHome()
-        let packageRoot = try temporaryDirectory(prefix: "MoaLiteDataPackage")
-            .appendingPathComponent("MoaLiteDataPackage", isDirectory: true)
+        let packageRoot = try temporaryDirectory(prefix: "MoaDataPackage")
+            .appendingPathComponent("MoaDataPackage", isDirectory: true)
         try fileManager.createDirectory(at: packageRoot, withIntermediateDirectories: true)
 
-        let copiedMoaHome = packageRoot.appendingPathComponent(".moa-lite", isDirectory: true)
+        let copiedMoaHome = packageRoot.appendingPathComponent(".moa", isDirectory: true)
         try runDitto(["--noextattr", "--noacl", source.path, copiedMoaHome.path])
         try removeRuntimeOnlyData(from: copiedMoaHome)
 
@@ -251,13 +390,13 @@ final class MoaDataPackageController {
             exportedAt: ISO8601DateFormatter().string(from: Date()),
             appVersion: appVersion,
             appBuild: appBuild,
-            dataRootName: ".moa-lite",
+            dataRootName: ".moa",
             files: fileEntries(under: source)
         )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let manifestData = try encoder.encode(manifest)
-        try manifestData.write(to: packageRoot.appendingPathComponent("MoaLiteDataPackageManifest.json"), options: .atomic)
+        try manifestData.write(to: packageRoot.appendingPathComponent("MoaDataPackageManifest.json"), options: .atomic)
 
         try? fileManager.removeItem(at: destination)
         try fileManager.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -269,7 +408,7 @@ final class MoaDataPackageController {
     func importDataPackage(from packageURL: URL) throws -> URL {
         operationLock.lock()
         defer { operationLock.unlock() }
-        let extractRoot = try temporaryDirectory(prefix: "MoaLiteDataImport")
+        let extractRoot = try temporaryDirectory(prefix: "MoaDataImport")
         try runDitto(["-x", "-k", packageURL.path, extractRoot.path])
         let importedMoaHome = try validatedImportedMoaHome(in: extractRoot)
 
@@ -277,7 +416,7 @@ final class MoaDataPackageController {
         if !fileManager.fileExists(atPath: destination.path) {
             try fileManager.createDirectory(at: destination, withIntermediateDirectories: true)
         }
-        let rollbackURL = defaultDataPackageURL(prefix: "Moa-Lite-Data-Rollback")
+        let rollbackURL = defaultDataPackageURL(prefix: "Moa-Data-Rollback")
         try exportDataPackage(to: rollbackURL)
 
         try replaceMoaHome(at: destination, with: importedMoaHome)
@@ -289,8 +428,8 @@ final class MoaDataPackageController {
         operationLock.lock()
         defer { operationLock.unlock() }
         let source = try resolvedMoaHome()
-        let diagnosticRoot = try temporaryDirectory(prefix: "MoaLiteDiagnostics")
-            .appendingPathComponent("MoaLiteDiagnostics", isDirectory: true)
+        let diagnosticRoot = try temporaryDirectory(prefix: "MoaDiagnostics")
+            .appendingPathComponent("MoaDiagnostics", isDirectory: true)
         try fileManager.createDirectory(at: diagnosticRoot, withIntermediateDirectories: true)
 
         let summary: [String: Any] = [
@@ -299,7 +438,7 @@ final class MoaDataPackageController {
             "appVersion": appVersion,
             "appBuild": appBuild,
             "moaLiteHome": diagnosticPathSummary(moaHome),
-            "resolvedMoaLiteHome": diagnosticPathSummary(source),
+            "resolvedMoaHome": diagnosticPathSummary(source),
             "iCloudStorageEnabled": isICloudStorageEnabled(),
             "files": fileEntries(under: source).map { ["path": $0.path, "size": $0.size] }
         ]
@@ -349,7 +488,7 @@ final class MoaDataPackageController {
             try fileManager.createDirectory(at: moaHome, withIntermediateDirectories: true)
         }
 
-        let rollbackURL = defaultDataPackageURL(prefix: "Moa-Lite-Data-Before-iCloud")
+        let rollbackURL = defaultDataPackageURL(prefix: "Moa-Data-Before-iCloud")
         try exportDataPackage(to: rollbackURL)
         let source = moaHome
         try fileManager.createDirectory(at: iCloudDriveRoot, withIntermediateDirectories: true)
@@ -387,7 +526,7 @@ final class MoaDataPackageController {
 
         try materializeLegacyICloudSymlinkIfNeeded()
         _ = try migrateLegacyNestedICloudDataIfNeeded()
-        let rollbackURL = defaultDataPackageURL(prefix: "Moa-Lite-Data-Before-iCloud-Off")
+        let rollbackURL = defaultDataPackageURL(prefix: "Moa-Data-Before-iCloud-Off")
         try exportDataPackage(to: rollbackURL)
         if fileManager.fileExists(atPath: iCloudMoaHome.path) {
             try replaceDirectory(at: moaHome, with: iCloudMoaHome)
@@ -429,8 +568,8 @@ final class MoaDataPackageController {
     }
 
     private func replaceDirectory(at destination: URL, with source: URL) throws {
-        let previousURL = try temporaryDirectory(prefix: "MoaLiteImportPrevious")
-            .appendingPathComponent(".moa-lite-previous", isDirectory: true)
+        let previousURL = try temporaryDirectory(prefix: "MoaImportPrevious")
+            .appendingPathComponent(".moa-previous", isDirectory: true)
         var movedExisting = false
 
         do {
@@ -475,8 +614,8 @@ final class MoaDataPackageController {
         guard let destination = MoaDataRoot.legacyICloudSymlinkDestination(environment: environment) else {
             return false
         }
-        let temporaryLocal = try temporaryDirectory(prefix: "MoaLiteICloudSymlinkMaterialize")
-            .appendingPathComponent(".moa-lite", isDirectory: true)
+        let temporaryLocal = try temporaryDirectory(prefix: "MoaICloudSymlinkMaterialize")
+            .appendingPathComponent(".moa", isDirectory: true)
         let source = fileManager.fileExists(atPath: destination.path)
             ? destination
             : (fileManager.fileExists(atPath: iCloudMoaHome.path) ? iCloudMoaHome : nil)
@@ -501,8 +640,8 @@ final class MoaDataPackageController {
             return try copyMissingLegacyNestedFiles()
         }
 
-        let migrated = try temporaryDirectory(prefix: "MoaLiteLegacyICloudData")
-            .appendingPathComponent("Moa-Lite", isDirectory: true)
+        let migrated = try temporaryDirectory(prefix: "MoaLegacyICloudData")
+            .appendingPathComponent("Moa", isDirectory: true)
         try runDitto(["--noextattr", "--noacl", legacyNestedICloudMoaHome.path, migrated.path])
 
         if fileManager.fileExists(atPath: iCloudMoaHome.path) {
@@ -545,12 +684,12 @@ final class MoaDataPackageController {
         guard let packageRoot = try findDataPackageRoot(in: extractRoot) else {
             throw MoaDataPackageError.invalidPackage
         }
-        let manifestURL = packageRoot.appendingPathComponent("MoaLiteDataPackageManifest.json")
+        let manifestURL = packageRoot.appendingPathComponent("MoaDataPackageManifest.json")
         let manifest = try JSONDecoder().decode(MoaDataPackageManifest.self, from: Data(contentsOf: manifestURL))
-        guard manifest.schemaVersion == 1, manifest.dataRootName == ".moa-lite" else {
+        guard manifest.schemaVersion == 1, manifest.dataRootName == ".moa" else {
             throw MoaDataPackageError.invalidPackage
         }
-        let importedMoaHome = packageRoot.appendingPathComponent(".moa-lite", isDirectory: true)
+        let importedMoaHome = packageRoot.appendingPathComponent(".moa", isDirectory: true)
         var isDirectory: ObjCBool = false
         let extractPath = extractRoot.resolvingSymlinksInPath().standardizedFileURL.path
         let importedPath = importedMoaHome.resolvingSymlinksInPath().standardizedFileURL.path
@@ -566,21 +705,21 @@ final class MoaDataPackageController {
     }
 
     private func findDataPackageRoot(in extractRoot: URL) throws -> URL? {
-        let direct = extractRoot.appendingPathComponent("MoaLiteDataPackage", isDirectory: true)
-        if fileManager.fileExists(atPath: direct.appendingPathComponent("MoaLiteDataPackageManifest.json").path),
-           fileManager.fileExists(atPath: direct.appendingPathComponent(".moa-lite", isDirectory: true).path) {
+        let direct = extractRoot.appendingPathComponent("MoaDataPackage", isDirectory: true)
+        if fileManager.fileExists(atPath: direct.appendingPathComponent("MoaDataPackageManifest.json").path),
+           fileManager.fileExists(atPath: direct.appendingPathComponent(".moa", isDirectory: true).path) {
             return direct
         }
-        if fileManager.fileExists(atPath: extractRoot.appendingPathComponent("MoaLiteDataPackageManifest.json").path),
-           fileManager.fileExists(atPath: extractRoot.appendingPathComponent(".moa-lite", isDirectory: true).path) {
+        if fileManager.fileExists(atPath: extractRoot.appendingPathComponent("MoaDataPackageManifest.json").path),
+           fileManager.fileExists(atPath: extractRoot.appendingPathComponent(".moa", isDirectory: true).path) {
             return extractRoot
         }
         guard let enumerator = fileManager.enumerator(at: extractRoot, includingPropertiesForKeys: [.isDirectoryKey]) else {
             throw MoaDataPackageError.invalidPackage
         }
-        for case let url as URL in enumerator where url.lastPathComponent == "MoaLiteDataPackageManifest.json" {
+        for case let url as URL in enumerator where url.lastPathComponent == "MoaDataPackageManifest.json" {
             let candidate = url.deletingLastPathComponent()
-            let moa = candidate.appendingPathComponent(".moa-lite", isDirectory: true)
+            let moa = candidate.appendingPathComponent(".moa", isDirectory: true)
             var isDirectory: ObjCBool = false
             if fileManager.fileExists(atPath: moa.path, isDirectory: &isDirectory), isDirectory.boolValue {
                 return candidate
@@ -671,7 +810,7 @@ final class MoaDataPackageController {
                 continue
             }
             let relativePath = String(filePath.dropFirst(rootPath.count + 1))
-            if relativePath == ".moa-lite" || relativePath.hasPrefix(".moa-lite/") {
+            if relativePath == ".moa" || relativePath.hasPrefix(".moa/") {
                 if (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true {
                     enumerator.skipDescendants()
                 }
@@ -791,10 +930,10 @@ final class MoaDataPackageController {
         let iCloudPath = iCloudMoaHome.resolvingSymlinksInPath().standardizedFileURL.path
 
         if path == localPath {
-            return "~/.moa-lite"
+            return "~/.moa"
         }
         if path == iCloudPath {
-            return "iCloud Drive/Moa-Lite"
+            return "iCloud Drive/Moa"
         }
 
         let name = url.lastPathComponent.trimmingCharacters(in: .whitespacesAndNewlines)

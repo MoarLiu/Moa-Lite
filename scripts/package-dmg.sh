@@ -10,15 +10,15 @@ fi
 
 # shellcheck source=version.env
 source "$ROOT/scripts/version.env"
-APP_NAME="Moa-Lite"
+APP_NAME="Moa"
 APP="$ROOT/$APP_NAME.app"
 DIST_DIR="$ROOT/dist"
 DMG_ROOT="$DIST_DIR/dmg-root"
 DMG_PATH="$DIST_DIR/$APP_NAME-$APP_VERSION-macos-$APP_ARCH.dmg"
 CHECKSUM_PATH="$DMG_PATH.sha256"
-CODE_SIGN_IDENTITY="${CODE_SIGN_IDENTITY:-${MOA_LITE_CODE_SIGN_IDENTITY:--}}"
+CODE_SIGN_IDENTITY="${CODE_SIGN_IDENTITY:-${MOA_CODE_SIGN_IDENTITY:--}}"
 NOTARIZE="${NOTARIZE:-0}"
-NOTARY_PROFILE="${NOTARY_PROFILE:-${MOA_LITE_NOTARY_PROFILE:-}}"
+NOTARY_PROFILE="${NOTARY_PROFILE:-${MOA_NOTARY_PROFILE:-}}"
 
 rm -rf "$DMG_ROOT" "$DMG_PATH" "$CHECKSUM_PATH"
 mkdir -p "$DMG_ROOT" "$DIST_DIR"
@@ -47,7 +47,6 @@ find "$DMG_ROOT" -name ".DS_Store" -delete
 
 SENSITIVE_MATCH="$(find "$DMG_ROOT" \( \
   -name ".moa" -o \
-  -name ".moa-lite" -o \
   -name ".codex" -o \
   -name ".env" -o \
   -name ".env.*" -o \
@@ -64,7 +63,6 @@ if [[ -n "$SENSITIVE_MATCH" ]]; then
   echo "Refusing to package sensitive local data: $SENSITIVE_MATCH" >&2
   find "$DMG_ROOT" \( \
     -name ".moa" -o \
-    -name ".moa-lite" -o \
     -name ".codex" -o \
     -name ".env" -o \
     -name ".env.*" -o \
@@ -100,7 +98,7 @@ if [[ "$CODE_SIGN_IDENTITY" != "-" ]]; then
   /usr/bin/codesign --verify --strict "$DMG_PATH"
   if [[ "$NOTARIZE" == "1" ]]; then
     if [[ -z "$NOTARY_PROFILE" ]]; then
-      echo "NOTARY_PROFILE or MOA_LITE_NOTARY_PROFILE is required when NOTARIZE=1." >&2
+      echo "NOTARY_PROFILE or MOA_NOTARY_PROFILE is required when NOTARIZE=1." >&2
       exit 1
     fi
     /usr/bin/xcrun notarytool submit "$DMG_PATH" --keychain-profile "$NOTARY_PROFILE" --wait

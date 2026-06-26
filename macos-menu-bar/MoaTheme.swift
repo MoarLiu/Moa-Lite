@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-enum MoaLiteTheme {
+enum MoaTheme {
     static let radius: CGFloat = 8
     static let smallRadius: CGFloat = 6
     static let glassRadius: CGFloat = 30
@@ -151,13 +151,13 @@ enum MoaGlassButtonTone: Equatable {
     var fill: Color {
         switch self {
         case .neutral:
-            return MoaLiteTheme.glassWhitewash
+            return MoaTheme.glassWhitewash
         case .primary:
-            return MoaLiteTheme.tint.opacity(0.92)
+            return MoaTheme.tint.opacity(0.92)
         case .danger:
-            return MoaLiteTheme.coral.opacity(0.92)
+            return MoaTheme.coral.opacity(0.92)
         case .amber:
-            return MoaLiteTheme.amber.opacity(0.92)
+            return MoaTheme.amber.opacity(0.92)
         }
     }
 
@@ -166,7 +166,7 @@ enum MoaGlassButtonTone: Equatable {
         case .neutral:
             return .primary
         case .primary, .danger, .amber:
-            return MoaLiteTheme.onTint
+            return MoaTheme.onTint
         }
     }
 }
@@ -187,11 +187,11 @@ struct MoaGlassButtonStyle: ButtonStyle {
             .background(
                 Capsule(style: .continuous)
                     .fill(tone.fill)
-                    .shadow(color: MoaLiteTheme.softShadow.opacity(tone == .neutral ? 0.45 : 0.6), radius: 12, x: 0, y: 7)
+                    .shadow(color: MoaTheme.softShadow.opacity(tone == .neutral ? 0.45 : 0.6), radius: 12, x: 0, y: 7)
             )
             .overlay(
                 Capsule(style: .continuous)
-                    .stroke(MoaLiteTheme.glassHairline, lineWidth: 1)
+                    .stroke(MoaTheme.glassHairline, lineWidth: 1)
             )
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .opacity(configuration.isPressed ? 0.88 : 1)
@@ -210,9 +210,9 @@ struct MoaGlassIconButtonStyle: ButtonStyle {
             .background(
                 Circle()
                     .fill(tone.fill)
-                    .shadow(color: MoaLiteTheme.softShadow.opacity(0.45), radius: 10, x: 0, y: 6)
+                    .shadow(color: MoaTheme.softShadow.opacity(0.45), radius: 10, x: 0, y: 6)
             )
-            .overlay(Circle().stroke(MoaLiteTheme.glassHairline, lineWidth: 1))
+            .overlay(Circle().stroke(MoaTheme.glassHairline, lineWidth: 1))
             .scaleEffect(configuration.isPressed ? 0.96 : 1)
             .opacity(configuration.isPressed ? 0.88 : 1)
     }
@@ -230,17 +230,17 @@ struct MoaStatusTag: View {
             .padding(.horizontal, 9)
             .frame(height: 20)
             .background(tint.opacity(0.12), in: Capsule(style: .continuous))
-            .overlay(Capsule(style: .continuous).stroke(MoaLiteTheme.glassHairline, lineWidth: 1))
+            .overlay(Capsule(style: .continuous).stroke(MoaTheme.glassHairline, lineWidth: 1))
     }
 }
 
 struct MoaLiquidWindowBackground: View {
     var body: some View {
         ZStack {
-            MoaLiteTheme.liquidBase
+            MoaTheme.liquidBase
             LinearGradient(
                 colors: [
-                    MoaLiteTheme.liquidSkyGlow,
+                    MoaTheme.liquidSkyGlow,
                     Color.clear
                 ],
                 startPoint: .topLeading,
@@ -248,7 +248,7 @@ struct MoaLiquidWindowBackground: View {
             )
             LinearGradient(
                 colors: [
-                    MoaLiteTheme.liquidWarmGlow,
+                    MoaTheme.liquidWarmGlow,
                     Color.clear
                 ],
                 startPoint: .topTrailing,
@@ -257,19 +257,19 @@ struct MoaLiquidWindowBackground: View {
             LinearGradient(
                 colors: [
                     Color.clear,
-                    MoaLiteTheme.liquidLeafGlow
+                    MoaTheme.liquidLeafGlow
                 ],
                 startPoint: .center,
                 endPoint: .bottom
             )
-            MoaLiteTheme.liquidWash
+            MoaTheme.liquidWash
         }
         .ignoresSafeArea()
     }
 }
 
 struct MoaGlassPanelBackground: View {
-    var radius: CGFloat = MoaLiteTheme.glassRadius
+    var radius: CGFloat = MoaTheme.glassRadius
     var liquidOpacity: Double = 0.20
     var shadowRadius: CGFloat = 30
     var shadowOpacity: Double = 0.35
@@ -280,10 +280,10 @@ struct MoaGlassPanelBackground: View {
             .fill(Color.white)
             .overlay(
                 RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .stroke(MoaLiteTheme.subtleBorder, lineWidth: 1)
+                    .stroke(MoaTheme.subtleBorder, lineWidth: 1)
             )
             .shadow(
-                color: MoaLiteTheme.softShadow.opacity(shadowOpacity),
+                color: MoaTheme.softShadow.opacity(shadowOpacity),
                 radius: shadowRadius,
                 x: 0,
                 y: shadowY
@@ -312,7 +312,7 @@ private struct MoaTrafficLight: View {
             Circle()
                 .fill(color)
                 .frame(width: 12, height: 12)
-                .overlay(Circle().stroke(MoaLiteTheme.subtleBorder, lineWidth: 0.5))
+                .overlay(Circle().stroke(MoaTheme.subtleBorder, lineWidth: 0.5))
         }
         .buttonStyle(.plain)
     }
@@ -344,18 +344,18 @@ struct MoaWindowAccessor: NSViewRepresentable {
 }
 
 extension View {
-    func moaGlassSurface(radius: CGFloat = MoaLiteTheme.glassRadius) -> some View {
+    func moaGlassSurface(radius: CGFloat = MoaTheme.glassRadius) -> some View {
         self
             .background(
                 RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .fill(MoaLiteTheme.glassPanelFill)
+                    .fill(MoaTheme.glassPanelFill)
                     .overlay(
                         RoundedRectangle(cornerRadius: radius, style: .continuous)
                             .fill(
                                 LinearGradient(
                                     colors: [
-                                        MoaLiteTheme.glassHighlightStart,
-                                        MoaLiteTheme.glassHighlightEnd
+                                        MoaTheme.glassHighlightStart,
+                                        MoaTheme.glassHighlightEnd
                                     ],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
@@ -365,13 +365,13 @@ extension View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .stroke(MoaLiteTheme.glassHairline, lineWidth: 1)
+                    .stroke(MoaTheme.glassHairline, lineWidth: 1)
             )
-            .shadow(color: MoaLiteTheme.softShadow.opacity(0.35), radius: 30, x: 0, y: 18)
+            .shadow(color: MoaTheme.softShadow.opacity(0.35), radius: 30, x: 0, y: 18)
     }
 
     func moaGlassPanel(
-        radius: CGFloat = MoaLiteTheme.glassRadius,
+        radius: CGFloat = MoaTheme.glassRadius,
         liquidOpacity: Double = 0.20,
         shadowRadius: CGFloat = 30,
         shadowOpacity: Double = 0.35,
@@ -390,35 +390,35 @@ extension View {
 
     func moaGlassField(radius: CGFloat = 18) -> some View {
         self
-            .background(MoaLiteTheme.glassFieldFill, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
+            .background(MoaTheme.glassFieldFill, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .stroke(MoaLiteTheme.glassHairline, lineWidth: 1)
+                    .stroke(MoaTheme.glassHairline, lineWidth: 1)
             )
     }
 
-    func moaLitePanel(radius: CGFloat = MoaLiteTheme.radius) -> some View {
+    func moaLitePanel(radius: CGFloat = MoaTheme.radius) -> some View {
         self
             .background(
                 RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .fill(MoaLiteTheme.surface)
+                    .fill(MoaTheme.surface)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .stroke(MoaLiteTheme.border, lineWidth: 1)
+                    .stroke(MoaTheme.border, lineWidth: 1)
             )
     }
 
-    func moaLiteBubble(accent: Color = MoaLiteTheme.tint) -> some View {
+    func moaLiteBubble(accent: Color = MoaTheme.tint) -> some View {
         self
             .background(
-                RoundedRectangle(cornerRadius: MoaLiteTheme.radius, style: .continuous)
-                    .fill(MoaLiteTheme.elevatedSurface)
-                    .shadow(color: MoaLiteTheme.softShadow, radius: 18, x: 0, y: 10)
+                RoundedRectangle(cornerRadius: MoaTheme.radius, style: .continuous)
+                    .fill(MoaTheme.elevatedSurface)
+                    .shadow(color: MoaTheme.softShadow, radius: 18, x: 0, y: 10)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: MoaLiteTheme.radius, style: .continuous)
-                    .stroke(MoaLiteTheme.border, lineWidth: 1)
+                RoundedRectangle(cornerRadius: MoaTheme.radius, style: .continuous)
+                    .stroke(MoaTheme.border, lineWidth: 1)
             )
             .overlay(alignment: .topLeading) {
                 Capsule()

@@ -6,7 +6,6 @@ Thumbs.db
 build/
 dist/
 Moa.app/
-Moa-Lite.app/
 packages/
 tmp/
 temp/
@@ -22,7 +21,6 @@ fast-toggle-backups/
 !.codex/environments/
 !.codex/environments/environment.toml
 .moa/
-.moa-lite/
 auth.json
 profiles.json
 config.toml

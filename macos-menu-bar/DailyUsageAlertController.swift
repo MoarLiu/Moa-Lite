@@ -67,7 +67,7 @@ struct DailyUsageAlertFormView: View {
 
             Text(statusText.isEmpty ? " " : statusText)
                 .font(.system(size: 12))
-                .foregroundStyle(MoaLiteTheme.coral)
+                .foregroundStyle(MoaTheme.coral)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(minHeight: 16, alignment: .leading)
 

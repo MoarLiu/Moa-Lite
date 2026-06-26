@@ -31,7 +31,7 @@ enum MoaProviderReasoningMode: String, Codable, CaseIterable {
 }
 
 enum MoaProviderBridgeDefaults {
-    static let defaultPort = 19361
+    static let defaultPort = 19360
     static let deepSeekBaseURL = "https://api.deepseek.com"
     static let deepSeekChatModel = "deepseek-chat"
     static let deepSeekReasonerModel = "deepseek-reasoner"

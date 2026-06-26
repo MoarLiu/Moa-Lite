@@ -82,6 +82,6 @@ final class ConfigProfileController {
 	"""
 
     static let exportProviderID = "codex"
-    static let providerBridgeModeID = "moa-lite-provider-bridge"
+    static let providerBridgeModeID = "moa-provider-bridge"
     static let officialAuthAccountsRelativePath = "codex-auth/accounts"
 }

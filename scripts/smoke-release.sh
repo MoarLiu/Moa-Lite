@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=version.env
 source "$ROOT/scripts/version.env"
-APP_NAME="Moa-Lite"
+APP_NAME="Moa"
 APP="$ROOT/$APP_NAME.app"
 CONTENTS="$APP/Contents"
 MACOS="$CONTENTS/MacOS"
@@ -56,7 +56,7 @@ plist_value() {
 [[ "$(plist_value CFBundleDisplayName)" == "$APP_NAME" ]] || fail "CFBundleDisplayName is not $APP_NAME"
 [[ "$(plist_value CFBundleName)" == "$APP_NAME" ]] || fail "CFBundleName is not $APP_NAME"
 [[ "$(plist_value CFBundleExecutable)" == "$APP_NAME" ]] || fail "CFBundleExecutable is not $APP_NAME"
-[[ "$(plist_value CFBundleIdentifier)" == "com.moarliu.moa-lite" ]] || fail "bundle identifier is not isolated"
+[[ "$(plist_value CFBundleIdentifier)" == "com.moarliu.moa" ]] || fail "bundle identifier is not com.moarliu.moa"
 [[ "$(plist_value LSMinimumSystemVersion)" == "$MACOS_DEPLOYMENT_TARGET" ]] ||
   fail "LSMinimumSystemVersion is not $MACOS_DEPLOYMENT_TARGET"
 
@@ -66,7 +66,6 @@ check_mach_o_deployment_target "$EXECUTABLE"
 
 if find "$APP" \( \
   -name ".moa" -o \
-  -name ".moa-lite" -o \
   -name ".codex" -o \
   -name ".env" -o \
   -name ".env.*" -o \

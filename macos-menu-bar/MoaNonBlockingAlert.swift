@@ -364,7 +364,7 @@ private struct MoaFloatingTextInputAlertView: View {
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 13, style: .continuous)
-                        .stroke(MoaLiteTheme.subtleBorder, lineWidth: 1)
+                        .stroke(MoaTheme.subtleBorder, lineWidth: 1)
                 )
                 .focused($isFocused)
                 .onSubmit(submit)
@@ -479,13 +479,13 @@ enum MoaAlertTone {
     var accent: Color {
         switch self {
         case .info:
-            return MoaLiteTheme.tint
+            return MoaTheme.tint
         case .success:
-            return MoaLiteTheme.leaf
+            return MoaTheme.leaf
         case .warning:
-            return MoaLiteTheme.amber
+            return MoaTheme.amber
         case .danger:
-            return MoaLiteTheme.coral
+            return MoaTheme.coral
         }
     }
 

@@ -364,7 +364,7 @@ final class MoaProviderActionCoordinator {
     func regenerateBridgeTokenAction() {
         guard MoaNonBlockingAlert.confirm(
             messageText: MoaL10n.text("Regenerate Provider Bridge Token?"),
-            informativeText: MoaL10n.text("Moa-Lite will update the selected Provider Bridge config and restart the local bridge. Any old bridge curl command will stop working."),
+            informativeText: MoaL10n.text("Moa will update the selected Provider Bridge config and restart the local bridge. Any old bridge curl command will stop working."),
             primaryButtonTitle: MoaL10n.text("Regenerate"),
             tone: .warning
         ) else {
@@ -627,16 +627,16 @@ final class MoaProviderActionCoordinator {
 
     func codexProviderSnippetID(for profile: ConfigProfile) -> String {
         if profile.usesLocalProviderBridge && profile.resolvedProviderKind == .deepseek && profile.name.localizedCaseInsensitiveContains("deepseek") {
-            return "moa-lite-deepseek"
+            return "moa-deepseek"
         }
         let slug = AppDelegate.identifierSlug(profile.name)
         if profile.usesLocalProviderBridge {
-            return slug.isEmpty ? "moa-lite-bridge" : "moa-lite-\(slug)"
+            return slug.isEmpty ? "moa-bridge" : "moa-\(slug)"
         }
-        return slug.isEmpty ? "moa-lite-provider" : "moa-lite-\(slug)"
+        return slug.isEmpty ? "moa-provider" : "moa-\(slug)"
     }
 
     func providerDisplayName(for profile: ConfigProfile) -> String {
-        profile.usesLocalProviderBridge ? "Moa-Lite \(profile.name)" : profile.name
+        profile.usesLocalProviderBridge ? "Moa \(profile.name)" : profile.name
     }
 }
